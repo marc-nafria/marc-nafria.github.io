@@ -72,7 +72,7 @@
       width: o.fluid ? '100%' : width, height: o.fluid ? null : height,
       viewBox: '0 0 ' + width + ' ' + height,
       preserveAspectRatio: 'xMidYMid meet',
-      role: 'img', 'aria-label': 'Mástil de guitarra'
+      role: 'img', 'aria-label': 'Mànec de la guitarra'
     });
 
     // Fingerboard background
@@ -195,6 +195,7 @@
    */
   function chordBox(shape, opts) {
     var o = opts || {};
+    if (o.horizontal) { return chordBoxH(shape, o); }
     var k = typeof o.size === 'number' ? o.size : (o.size === 'md' ? 1.28 : 1);
 
     var G = 15 * k;            // separación entre cuerdas
@@ -218,7 +219,7 @@
       width: o.fluid ? '100%' : width, height: o.fluid ? null : height,
       viewBox: '0 0 ' + width + ' ' + height,
       preserveAspectRatio: 'xMidYMid meet',
-      role: 'img', 'aria-label': 'Acorde ' + (shape.name || '')
+      role: 'img', 'aria-label': 'Acord ' + (shape.name || '')
     });
 
     function colX(idx) { return L + idx * G; }        // idx 0 = 6ª cuerda
@@ -347,6 +348,163 @@
         }, name));
       });
     }
+
+    return svg;
+  }
+
+  /**
+   * chordBoxH: el mateix diagrama, ajagut (per a la pantalla en
+   * horitzontal). Celleta a l'esquerra, 6a corda a baix, com es veu
+   * el mastil des de la posicio del guitarrista.
+   */
+  function chordBoxH(shape, opts) {
+    var o = opts || {};
+    var k = typeof o.size === 'number' ? o.size : 1;
+
+    var G = 15 * k;            /* separacio entre cordes (files) */
+    var C = 24 * k;            /* ample de cada trast (columnes) */
+    var L = 34 * k;            /* marge esquerre: noms de corda + x/o */
+    var Rm = 10 * k;
+    var T = 10 * k;
+    var B = 16 * k;            /* numero de trast a sota */
+    var ROWS = 5;              /* trasts visibles */
+
+    var width = L + C * ROWS + Rm;
+    var height = T + G * 5 + B;
+
+    var played = shape.frets.filter(function (f) { return f > 0; });
+    var minF = played.length ? Math.min.apply(null, played) : 1;
+    var maxF = played.length ? Math.max.apply(null, played) : 1;
+    var base = (maxF <= 4) ? 1 : minF;
+    if (maxF - base >= ROWS) { base = maxF - ROWS + 1; }
+
+    var svg = el('svg', {
+      width: o.fluid ? '100%' : width, height: o.fluid ? null : height,
+      viewBox: '0 0 ' + width + ' ' + height,
+      preserveAspectRatio: 'xMidYMid meet',
+      role: 'img', 'aria-label': 'Acord ' + (shape.name || '')
+    });
+
+    /* idx 0 = 6a corda, a baix */
+    function rowY(idx) { return T + (5 - idx) * G; }
+    function colX(fret) { return L + (fret - base) * C + C / 2; }
+
+    /* trasts (linies verticals) */
+    for (var f = 0; f <= ROWS; f++) {
+      if (f === 0 && base === 1) { continue; }
+      svg.appendChild(el('line', {
+        x1: L + f * C, y1: T, x2: L + f * C, y2: T + G * 5,
+        stroke: '#403C36', 'stroke-width': 1.4 * k
+      }));
+    }
+    /* celleta */
+    if (base === 1) {
+      svg.appendChild(el('rect', {
+        x: L - 2.6 * k, y: T - 0.5 * k, width: 2.6 * k, height: G * 5 + k,
+        rx: 0.5 * k, fill: '#F7F4EF'
+      }));
+    } else {
+      svg.appendChild(el('line', {
+        x1: L, y1: T, x2: L, y2: T + G * 5, stroke: '#403C36', 'stroke-width': 1.4 * k
+      }));
+      svg.appendChild(txt({
+        x: L + C * 0.5, y: T + G * 5 + 13 * k, 'text-anchor': 'middle', fill: '#DCC9A6',
+        'font-size': 9.5 * k, 'font-weight': 700, 'font-family': 'JetBrains Mono, monospace'
+      }, String(base)));
+    }
+
+    /* cordes (linies horitzontals), la 6a mes gruixuda */
+    var GAUGE = [2.2, 1.95, 1.7, 1.45, 1.2, 1.0];
+    var NAMES = ['E', 'A', 'D', 'G', 'B', 'E'];
+    for (var c = 0; c < 6; c++) {
+      var y = rowY(c);
+      svg.appendChild(el('line', {
+        x1: L, y1: y, x2: L + C * ROWS, y2: y,
+        stroke: '#7A746C', 'stroke-width': GAUGE[c] * k
+      }));
+      svg.appendChild(txt({
+        x: 8 * k, y: y + 3 * k, 'text-anchor': 'middle', fill: '#57524B',
+        'font-size': 8 * k, 'font-weight': 500, 'font-family': 'JetBrains Mono, monospace'
+      }, NAMES[c]));
+    }
+
+    /* marques d'aire i silenci, entre el nom i la celleta */
+    function isRoot(idx, fret) {
+      return o.rootPc !== undefined &&
+        Theory.mod12(Theory.GUITAR_STANDARD[idx].midi + fret) === Theory.mod12(o.rootPc);
+    }
+    shape.frets.forEach(function (fret, idx) {
+      var y = rowY(idx);
+      if (fret === -1 || fret === 'x') {
+        svg.appendChild(txt({
+          x: 21 * k, y: y + 3.4 * k, 'text-anchor': 'middle', fill: '#6A645C',
+          'font-size': 10 * k, 'font-weight': 700, 'font-family': 'Outfit, system-ui, sans-serif'
+        }, '\u00D7'));
+      } else if (fret === 0) {
+        var openRoot = isRoot(idx, 0);
+        svg.appendChild(el('circle', {
+          cx: 21 * k, cy: y, r: 3.6 * k,
+          fill: openRoot ? '#DCC9A6' : 'none',
+          stroke: openRoot ? '#DCC9A6' : '#C6C0B6', 'stroke-width': 1.6 * k
+        }));
+      }
+    });
+
+    /* celletes de dit: mateix dit, mateix trast, dues cordes o mes */
+    var barred = {};
+    if (shape.fingers) {
+      var groups = {};
+      shape.frets.forEach(function (fret, idx) {
+        if (fret <= 0) { return; }
+        var finger = shape.fingers[idx];
+        if (!finger) { return; }
+        var key = fret + ':' + finger;
+        (groups[key] = groups[key] || []).push(idx);
+      });
+      Object.keys(groups).forEach(function (key) {
+        var idxs = groups[key];
+        if (idxs.length < 2) { return; }
+        var fret = parseInt(key.split(':')[0], 10);
+        var finger = key.split(':')[1];
+        var yA = rowY(Math.max.apply(null, idxs));   /* corda mes aguda: fila alta */
+        var yB = rowY(Math.min.apply(null, idxs));
+        var x = colX(fret);
+        var w = 12.4 * k;
+        svg.appendChild(el('rect', {
+          x: x - w / 2, y: yA - w / 2,
+          width: w, height: yB - yA + w, rx: w / 2,
+          fill: '#F2EFE9'
+        }));
+        idxs.forEach(function (i) {
+          barred[i] = true;
+          if (isRoot(i, fret)) {
+            svg.appendChild(el('circle', { cx: x, cy: rowY(i), r: 4.6 * k, fill: '#C9B48C' }));
+          }
+        });
+        svg.appendChild(txt({
+          x: x, y: yA + 3.1 * k, 'text-anchor': 'middle', fill: '#14120F',
+          'font-size': 8.6 * k, 'font-weight': 700, 'font-family': 'JetBrains Mono, monospace'
+        }, finger));
+      });
+    }
+
+    /* punts solts */
+    shape.frets.forEach(function (fret, idx) {
+      if (fret <= 0 || barred[idx]) { return; }
+      var x = colX(fret);
+      var y = rowY(idx);
+      var root = isRoot(idx, fret);
+      svg.appendChild(el('circle', {
+        cx: x, cy: y, r: 6.6 * k, fill: root ? '#DCC9A6' : '#F2EFE9'
+      }));
+      var finger = shape.fingers && shape.fingers[idx];
+      if (finger) {
+        svg.appendChild(txt({
+          x: x, y: y + 3.1 * k, 'text-anchor': 'middle', fill: '#14120F',
+          'font-size': 8.6 * k, 'font-weight': 700, 'font-family': 'JetBrains Mono, monospace'
+        }, String(finger)));
+      }
+    });
 
     return svg;
   }

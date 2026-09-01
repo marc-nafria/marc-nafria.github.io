@@ -21,8 +21,10 @@
   var FLAT_PCS = [3, 8, 10];
 
   /* Los acordes disponibles viven en data/chords.json (global.ChordData). */
-  var INV_NAMES = ['fundamental', '1ª inversión', '2ª inversión', '3ª inversión', '4ª inversión'];
-  var PANELS = ['guitar', 'piano'];
+  var INV_NAMES = ['fonamental', '1a inversió', '2a inversió', '3a inversió', '4a inversió'];
+  /* l'ordre del carrusel: eines als extrems, instruments al mig */
+  var PANELS = ['tuner', 'guitar', 'piano', 'metronome'];
+  var INSTRUMENTS = { guitar: true, piano: true };
 
   var RH_BASE = 60;   // la derecha toca alrededor de C4
   var LH_BASE = 45;   // la izquierda, una décima por debajo
@@ -30,6 +32,8 @@
   var OUT_MS = 130;   // lo que tarda el desenfoque de salida
 
   var state = { rootPc: 0, quality: 'maj', ins: 'guitar', posG: 0, posP: 0 };
+  var activeId = 'guitar';
+  var toolHandles = {};
 
   /* Referencias al armazón: se crea una vez y se rellena. */
   var shell = null;
@@ -54,7 +58,7 @@
     var q = read('quality', 'maj');
     if (Theory.CHORDS[q]) { state.quality = q; }
     var ins = read('ins', 'guitar');
-    state.ins = PANELS.indexOf(ins) !== -1 ? ins : 'guitar';
+    state.ins = INSTRUMENTS[ins] ? ins : 'guitar';
   }
 
   /* ---------------- utilidades ---------------- */
@@ -90,8 +94,24 @@
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
+  /* el mateix trencament que el CSS d'apaisat */
+  var landscapeMq = global.matchMedia ? global.matchMedia('(max-height: 480px)') : null;
+  function isLandscape() { return !!(landscapeMq && landscapeMq.matches); }
+
   function spell(pc) { return CANON[Theory.mod12(pc)]; }
   function useFlats(pc) { return FLAT_PCS.indexOf(Theory.mod12(pc)) !== -1; }
+
+  /**
+   * Nombre de una nota del acorde: los grados bemoles se escriben con
+   * bemol (la b3 de Cm7 es Eb, no D#), los sostenidos con sostenido
+   * (la #5 de Caug es G#) y el resto según la fundamental.
+   */
+  function spellDegree(pc, degree) {
+    var flats = degree && degree.charAt(0) === 'b' ? true
+      : degree && degree.charAt(0) === '#' ? false
+        : useFlats(state.rootPc);
+    return Theory.pcName(pc, { flats: flats });
+  }
   function suffix() { return Theory.CHORDS[state.quality].suffix; }
   function symbol() { return spell(state.rootPc) + suffix(); }
   function chordNotes() { return Theory.buildChord(state.rootPc, state.quality); }
@@ -213,11 +233,6 @@
     return (table[String(n)] || []).slice();
   }
 
-  function play(midis, timbre) {
-    Sound.ready();
-    Sound.chord(midis, { timbre: timbre });
-  }
-
   var WHITE_PCS = [0, 2, 4, 5, 7, 9, 11];
   var KB_KEYS = 10;          // teclas blancas por teclado, fijas
   var KB_HEIGHT = 150;       // alto de las blancas en el dibujo
@@ -265,22 +280,23 @@
     // Dentro del círculo, mano y dedo; el nombre de la nota va debajo
     // de la tecla, así no compiten.
     var marks = midis.map(function (m, i) {
+      var deg = degreeOfMidi(m);
       return {
-        midi: m, label: hand + fingers[i], flats: flats,
+        midi: m, label: hand + fingers[i],
+        flats: deg ? deg.charAt(0) === 'b' : flats,
         role: Theory.mod12(m) === Theory.mod12(state.rootPc) ? 'root' : 'chord'
       };
     });
 
     var win = kbWindow(midis);
     var svg = Piano.render({
-      from: win.from, keys: win.keys, midiMarks: marks,
+      from: win.from, keys: win.keys, midiMarks: marks, playable: false,
       labels: 'none', footLabels: 'marked', fluid: true, keyHeight: KB_HEIGHT
     });
-    svg.addEventListener('pointerdown', function () { play(midis, 'piano'); });
 
     // La caja lleva la proporción exacta del dibujo: así no sobra hueco
     // y los dos teclados quedan pegados en el centro.
-    var boxW = win.keys * 34 + 2;
+    var boxW = Number(svg.getAttribute('data-width')) || (win.keys * 34 + 2);
     var boxH = KB_HEIGHT + 18;
     var diagram = h('div', {
       class: 'diagram',
@@ -290,7 +306,7 @@
     // El dedo ya va escrito en cada tecla: la cabecera solo dice de qué
     // mano es, en su lado y por fuera, para no separar los teclados.
     var head = h('div', { class: 'kb-head kb-' + hand.toLowerCase() }, [
-      h('span', { text: hand === 'R' ? 'derecha' : 'izquierda' })
+      h('span', { text: hand === 'R' ? 'dreta' : 'esquerra' })
     ]);
     return h('div', { class: 'kb' }, hand === 'L' ? [head, diagram] : [diagram, head]);
   }
@@ -309,9 +325,9 @@
     var list = shapes();
     if (!list.length) {
       return [h('div', { class: 'empty' }, [
-        h('b', { text: 'sin posición estándar' }),
+        h('b', { text: 'sense posició estàndard' }),
         h('span', {
-          text: 'Sus notas son ' + chordNotes().map(function (n) {
+          text: 'Les notes són ' + chordNotes().map(function (n) {
             return Theory.pcName(n.pc, { flats: useFlats(state.rootPc) });
           }).join(' · ') + '.'
         })
@@ -320,8 +336,10 @@
 
     if (state.posG >= list.length) { state.posG = 0; }
     var shape = list[state.posG];
-    var box = Fret.chordBox(shape, { size: 1, rootPc: state.rootPc, fluid: true });
-    box.addEventListener('pointerdown', function () { play(Fret.shapeMidi(shape), 'guitar'); });
+    var box = Fret.chordBox(shape, {
+      size: 1, rootPc: state.rootPc, fluid: true,
+      horizontal: isLandscape()      /* en apaisat, el mastil s'ajeu */
+    });
     return [h('div', { class: 'diagram narrow' }, [box])];
   }
 
@@ -339,20 +357,20 @@
         total: v.length, index: i,
         title: slashSymbol(v[i][0]),
         sub: INV_NAMES[i] || 'inversión',
-        onChange: function (n) { change(function () { state.posP = n; }); }
+        onChange: function (n) { change(function () { state.posP = n; }, true); }
       };
     }
     var list = shapes();
     if (!list.length) {
-      return { total: 1, index: 0, title: symbol(), sub: 'sin posiciones', onChange: function () {} };
+      return { total: 1, index: 0, title: symbol(), sub: 'sense posicions', onChange: function () {} };
     }
     var j = Math.min(state.posG, list.length - 1);
     var shape = list[j];
     return {
       total: list.length, index: j,
       title: slashSymbol(bassOfShape(shape)),
-      sub: (shape.label || 'posición') + (shape.base > 1 ? ' · traste ' + shape.base : ''),
-      onChange: function (n) { change(function () { state.posG = n; }); }
+      sub: (shape.label || 'posició') + (shape.base > 1 ? ' · trast ' + shape.base : ''),
+      onChange: function (n) { change(function () { state.posG = n; }, true); }
     };
   }
 
@@ -371,7 +389,7 @@
     for (var i = 0; i < d.total; i++) {
       dots.appendChild(h('button', {
         class: 'dot' + (i === d.index ? ' on' : ''), type: 'button',
-        'aria-label': 'Posición ' + (i + 1),
+        'aria-label': 'Posició ' + (i + 1),
         onclick: (function (n) { return function () { d.onChange(n); }; })(i)
       }));
     }
@@ -383,7 +401,7 @@
           h('b', { text: d.title }),
           h('span', { text: d.sub })
         ]),
-        chevron(1, 'Siguiente')
+        chevron(1, 'Següent')
       ]),
       d.total > 1 ? dots : null
     ]);
@@ -393,7 +411,6 @@
 
   /* ---------------- título: el mando ---------------- */
   function titleContent() {
-    var flats = useFlats(state.rootPc);
     var notes = chordNotes();
     var kind = Theory.CHORDS[state.quality].name.toLowerCase();
     var ext = suffix();
@@ -402,24 +419,42 @@
       class: 'tok tok-root' + (openKind === 'root' ? ' active' : ''),
       type: 'button', text: spell(state.rootPc),
       'aria-haspopup': 'dialog',
-      'aria-label': 'Cambiar la fundamental, ahora ' + spell(state.rootPc),
+      'aria-label': 'Canviar la fonamental, ara ' + spell(state.rootPc),
       onclick: function () { openSheet('root'); }
     });
 
+    // El major es mostra com Cmaj, amb el sufix a plena visibilitat:
+    // així la fonamental queda on toca dins d'una paraula completa
+    // i el sufix sempre es pot clicar.
     var extTok = h('button', {
-      class: 'tok tok-ext' + (ext ? '' : ' empty') + (openKind === 'ext' ? ' active' : ''),
-      type: 'button', text: ext || 'may',
+      class: 'tok tok-ext' + (openKind === 'ext' ? ' active' : ''),
+      type: 'button', text: ext || 'maj',
       'aria-haspopup': 'dialog',
-      'aria-label': 'Cambiar la extensión, ahora ' + kind,
+      'aria-label': 'Canviar extensió, ara ' + kind,
       onclick: function () { openSheet('ext'); }
     });
 
+    var kindBtn = h('button', {
+      class: 'line-ext' + (openKind === 'ext' ? ' active' : ''),
+      type: 'button', text: kind,
+      'aria-haspopup': 'dialog',
+      'aria-label': 'Canviar extensió, ara ' + kind,
+      onclick: function () { openSheet('ext'); }
+    });
+
+    var pianoBtn = h('button', {
+      class: 'piano-btn', type: 'button',
+      'aria-label': 'Pianet lliure',
+      onclick: function () { if (global.Tools) { global.Tools.openFreePiano(); } }
+    }, [h('i'), h('i'), h('i')]);
+
     return [
+      pianoBtn,
       h('h1', { class: 'chord-name' }, [rootTok, extTok]),
       h('div', { class: 'chord-line' }, [
-        h('span', { text: kind }),
+        kindBtn,
         h('em', {
-          text: notes.map(function (n) { return Theory.pcName(n.pc, { flats: flats }); }).join(' ')
+          text: notes.map(function (n) { return spellDegree(n.pc, n.degree); }).join(' ')
         })
       ])
     ];
@@ -441,37 +476,56 @@
     }, [h('span', { class: 'opt-big', text: big })]);
   }
 
+  /**
+   * Los selectores van por niveles de popularidad (rootTiers y tier en
+   * data/chords.json): lo más tocado, grande; lo raro, pequeño.
+   */
   function sheetBody(kind) {
+    var wrap = h('div', {});
+    var idx = 0;
+
     if (kind === 'root') {
-      var grid = h('div', { class: 'opt-grid roots' });
-      CANON.forEach(function (name, pc) {
-        grid.appendChild(option(name, {
-          pressed: pc === state.rootPc,
-          index: pc,
-          onPick: function () { pick(pc, state.quality); }
+      var tiers = global.ChordData.rootTiers || [CANON];
+      tiers.forEach(function (names, ti) {
+        var grid = h('div', { class: 'opt-grid roots tier' + (ti + 1) });
+        names.forEach(function (name) {
+          var pc = Theory.nameToPc(name);
+          grid.appendChild(option(spell(pc), {
+            pressed: pc === state.rootPc,
+            index: idx++,
+            onPick: (function (p) { return function () { pick(p, state.quality); }; })(pc)
+          }));
+        });
+        wrap.appendChild(grid);
+      });
+      return wrap;
+    }
+
+    [1, 2, 3].forEach(function (tier) {
+      var types = global.ChordData.types.filter(function (t) { return (t.tier || 3) === tier; });
+      if (!types.length) { return; }
+      var grid = h('div', { class: 'opt-grid exts tier' + tier });
+      types.forEach(function (t) {
+        grid.appendChild(option(t.suffix || 'maj', {
+          pressed: t.id === state.quality,
+          index: idx++,
+          onPick: function () { pick(state.rootPc, t.id); }
         }));
       });
-      return grid;
-    }
-    var types = h('div', { class: 'opt-grid exts' });
-    global.ChordData.types.forEach(function (t, i) {
-      types.appendChild(option(t.suffix || 'may', {
-        pressed: t.id === state.quality,
-        ghost: !t.suffix,
-        index: i,
-        onPick: function () { pick(state.rootPc, t.id); }
-      }));
+      wrap.appendChild(grid);
     });
-    return types;
+    return wrap;
   }
 
   function openSheet(kind) {
+    // als plans d'eines el títol està dissolt: no s'obre res des d'allà
+    if (!INSTRUMENTS[activeId]) { return; }
     if (sheetEl) { closeSheet(); }
     openKind = kind;
 
     var panel = h('div', {
       class: 'sheet', 'data-kind': kind, role: 'dialog', 'aria-modal': 'true',
-      'aria-label': kind === 'root' ? 'Elegir fundamental' : 'Elegir extensión'
+      'aria-label': kind === 'root' ? 'Triar la fonamental' : 'Triar extensió'
     }, [sheetBody(kind)]);
 
     sheetEl = h('div', { class: 'sheet-wrap' }, [
@@ -512,36 +566,50 @@
     });
   }
 
-  /* ---------------- el cambio: desenfocar, cambiar, enfocar ---------------- */
-  function change(mutate) {
+  /* ---------------- el cambio: desenfocar, cambiar, enfocar ----------------
+     keepTitle: en un canvi d'inversio o posicio el nom de dalt no canvia,
+     aixi que no te sentit desenfocar-lo. */
+  function change(mutate, keepTitle) {
     if (busy || reducedMotion()) {
       mutate();
-      render(true);
+      render(true, keepTitle);
       return;
     }
     busy = true;
     blurOut(shell.panels.guitar.inner);
     blurOut(shell.panels.piano.inner);
-    blurOut(shell.topInner);
+    if (!keepTitle) { blurOut(shell.topInner); }
     blurOut(shell.bottomInner);
     global.setTimeout(function () {
       busy = false;
       mutate();
-      render(true);
+      render(true, keepTitle);
     }, OUT_MS);
   }
 
   /* ---------------- instrumento ---------------- */
-  function setInstrument(ins) {
-    if (state.ins === ins) { return; }
-    state.ins = ins;
-    write('ins', ins);
-    fill(shell.bottomInner, bottomContent());
+  /**
+   * Activar un pla: als extrems (eines) les capes fixes es dissolen;
+   * al mig (instruments) tornen, i el paginador es refà. L'afinador
+   * engega el micròfon en arribar-hi i el deixa anar en marxar.
+   */
+  function activate(id) {
+    if (id === activeId) { return; }
+    var prev = activeId;
+    activeId = id;
+    if (prev === 'tuner' && toolHandles.tuner) { toolHandles.tuner.leave(); }
+    if (id === 'tuner' && toolHandles.tuner) { toolHandles.tuner.enter(); }
+    shell.root.classList.toggle('on-tool', !INSTRUMENTS[id]);
+    if (INSTRUMENTS[id]) {
+      state.ins = id;
+      write('ins', id);
+      fill(shell.bottomInner, bottomContent());
+    }
   }
 
-  /** Ir a un instrumento: deslizamiento suave, también con teclado o barra. */
-  function goTo(ins) {
-    var idx = PANELS.indexOf(ins);
+  /** Anar a un pla concret (teclat o codi), amb lliscament suau. */
+  function goTo(id) {
+    var idx = PANELS.indexOf(id);
     if (idx === -1) { return; }
     var deck = shell.deck;
     if (deck.clientWidth) {
@@ -551,17 +619,23 @@
         deck.scrollLeft = idx * deck.clientWidth;
       }
     }
-    setInstrument(ins);
+    activate(id);
   }
 
   function onDeckScroll() {
+    var deck = shell.deck;
+    // el fos de les capes és immediat, perquè es vegi mentre llisques
+    if (deck.clientWidth) {
+      var near = Math.round(deck.scrollLeft / deck.clientWidth);
+      near = Math.max(0, Math.min(PANELS.length - 1, near));
+      shell.root.classList.toggle('on-tool', !INSTRUMENTS[PANELS[near]]);
+    }
     if (scrollTimer) { global.clearTimeout(scrollTimer); }
     scrollTimer = global.setTimeout(function () {
       scrollTimer = null;
-      var deck = shell.deck;
       if (!deck.clientWidth) { return; }
       var idx = Math.round(deck.scrollLeft / deck.clientWidth);
-      setInstrument(PANELS[Math.max(0, Math.min(PANELS.length - 1, idx))]);
+      activate(PANELS[Math.max(0, Math.min(PANELS.length - 1, idx))]);
     }, 110);
   }
 
@@ -569,10 +643,19 @@
   function buildShell(root) {
     var deck = h('div', { class: 'deck' });
     var panels = {};
+    if (global.Tools) {
+      toolHandles.tuner = global.Tools.tuner();
+      toolHandles.metronome = global.Tools.metronome();
+    }
     PANELS.forEach(function (p) {
-      var inner = h('div', { class: 'panel-inner' });
-      deck.appendChild(h('div', { class: 'panel', 'data-ins': p }, [inner]));
-      panels[p] = { inner: inner };
+      if (INSTRUMENTS[p]) {
+        var inner = h('div', { class: 'panel-inner' });
+        deck.appendChild(h('div', { class: 'panel', 'data-ins': p }, [inner]));
+        panels[p] = { inner: inner };
+      } else {
+        deck.appendChild(h('div', { class: 'panel panel-tool', 'data-ins': p },
+          toolHandles[p] ? [toolHandles[p].el] : []));
+      }
     });
     deck.addEventListener('scroll', onDeckScroll, { passive: true });
 
@@ -587,31 +670,41 @@
     return { root: root, deck: deck, panels: panels, topInner: topInner, bottomInner: bottomInner };
   }
 
-  function render(fx) {
+  function render(fx, keepTitle) {
     fill(shell.panels.guitar.inner, guitarContent(), fx);
     fill(shell.panels.piano.inner, pianoContent(), fx);
-    fill(shell.topInner, titleContent(), fx);
+    fill(shell.topInner, titleContent(), fx && !keepTitle);
     fill(shell.bottomInner, bottomContent(), fx);
   }
 
   function start() {
     restore();
+    activeId = state.ins;
     shell = buildShell(document.getElementById('app'));
     render(false);
 
-    // colocar el deck en el instrumento guardado, sin animación
+    // col·locar el deck al pla guardat, sense animació
     var idx = PANELS.indexOf(state.ins);
     if (shell.deck.clientWidth) { shell.deck.scrollLeft = idx * shell.deck.clientWidth; }
+
+    if (landscapeMq && landscapeMq.addEventListener) {
+      landscapeMq.addEventListener('change', function () {
+        render(false);
+        var i = PANELS.indexOf(activeId);
+        if (shell.deck.clientWidth) { shell.deck.scrollLeft = i * shell.deck.clientWidth; }
+      });
+    }
+    global.addEventListener('resize', function () {
+      var i = PANELS.indexOf(activeId);
+      if (shell.deck.clientWidth) { shell.deck.scrollLeft = i * shell.deck.clientWidth; }
+    });
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key === 'Escape' && sheetEl) { closeSheet(); return; }
       if (sheetEl) { return; }
-      if (ev.key === 'ArrowRight') { goTo('piano'); }
-      if (ev.key === 'ArrowLeft') { goTo('guitar'); }
-    });
-    document.addEventListener('pointerdown', function once() {
-      Sound.ready();
-      document.removeEventListener('pointerdown', once);
+      var idx = PANELS.indexOf(activeId);
+      if (ev.key === 'ArrowRight' && idx < PANELS.length - 1) { goTo(PANELS[idx + 1]); }
+      if (ev.key === 'ArrowLeft' && idx > 0) { goTo(PANELS[idx - 1]); }
     });
   }
 

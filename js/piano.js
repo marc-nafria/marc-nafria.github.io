@@ -89,16 +89,28 @@
     var m = from;
     for (var i = 0; i < whiteCount; i++) { whiteMidis.push(m); m = nextWhite(m); }
 
-    var width = whiteCount * WW + PAD * 2;
+    /* Si just abans de la primera blanca o just despres de l'ultima hi ha
+       una negra, es dibuixa tambe: un tros de teclat que acaba en Re sense
+       el Re# sembla un Mi i despista. */
+    var lastWhite = whiteMidis[whiteCount - 1];
+    var edgeLeft = !isWhite(from - 1);
+    var edgeRight = !isWhite(lastWhite + 1);
+    var EDGE = BW / 2 + 2;
+    var x0 = PAD + (edgeLeft ? EDGE : 0);
+
+    var width = whiteCount * WW + PAD * 2 +
+      (edgeLeft ? EDGE : 0) + (edgeRight ? EDGE : 0);
     var height = wh + FOOT + PAD * 2;
 
     var svg = el('svg', {
       width: o.fluid ? '100%' : width, height: o.fluid ? null : height,
       viewBox: '0 0 ' + width + ' ' + height,
       preserveAspectRatio: 'xMidYMid meet',
-      role: 'img', 'aria-label': 'Teclado de piano'
+      role: 'img', 'aria-label': 'Teclat de piano'
     });
     svg.setAttribute('data-width', width);
+    var keyRefs = {};
+    svg.keyRefs = keyRefs;
 
     function markOf(midi) {
       if (marks.byMidi[midi]) { return marks.byMidi[midi]; }
@@ -128,18 +140,29 @@
     function addKey(midi, x, w, h, white) {
       var mk = markOf(midi);
       var group = el('g', { 'data-midi': midi, class: 'pk' });
+      /* la tecla marcada baixa un pel, com si estigues polsada */
+      if (mk) { group.setAttribute('transform', 'translate(0 2.5)'); }
 
-      group.appendChild(el('rect', {
+      /* la negra marcada es tenyeix sencera del color del rol, amb una
+         bona vora negra perque no es fongui amb les blanques. El mode
+         interactiu (el pianet) va un punt mes clar que els diagrames,
+         pero sense arribar a l'ivori. */
+      var live = !!o.keyHandlers;
+      var role = mk ? (ROLE[mk.role] || ROLE.chord) : null;
+      var rect = el('rect', {
         x: x, y: PAD, width: w, height: h, rx: 1.5,
-        fill: white ? (mk ? '#F7F4EF' : '#8E887F') : (mk ? '#332F29' : '#0F0E0D'),
-        stroke: white ? '#0A0A0A' : '#3D3A35', 'stroke-width': white ? 1.4 : 1
-      }));
+        fill: white ? (mk ? '#F7F4EF' : (live ? '#C7C0B2' : '#8E887F'))
+                    : (mk ? role.fill : (live ? '#171614' : '#0F0E0D')),
+        stroke: white ? '#0A0A0A' : (mk ? '#060605' : '#4A463F'),
+        'stroke-width': white ? 1.4 : (mk ? 2.4 : 1.8)
+      });
+      group.appendChild(rect);
 
       if (mk) {
-        var role = ROLE[mk.role] || ROLE.chord;
         var cy = white ? PAD + h - 25 : PAD + h - 17;
-        var r = white ? 13 : 9.3;
-        group.appendChild(el('circle', { cx: x + w / 2, cy: cy, r: r, fill: role.fill }));
+        if (white) {
+          group.appendChild(el('circle', { cx: x + w / 2, cy: cy, r: 13, fill: role.fill }));
+        }
         var text = labelFor(mk, midi, labels);
         if (text) {
           var long = text.length > 1;
@@ -154,11 +177,24 @@
         }
       }
 
-      if (playable) {
+      if (o.keyHandlers) {
+        /* mode instrument: la tecla nomes es construeix aqui; els gestors
+           van delegats a l'svg sencer (mes robust que 150 listeners) */
         group.setAttribute('cursor', 'pointer');
+        keyRefs[midi] = {
+          rect: rect, black: !white,
+          baseFill: rect.getAttribute('fill'),
+          baseStroke: rect.getAttribute('stroke'),
+          baseStrokeW: rect.getAttribute('stroke-width')
+        };
+      } else if (playable) {
+        group.setAttribute('cursor', 'pointer');
+        var baseFill = rect.getAttribute('fill');
         group.addEventListener('pointerdown', function (ev) {
           ev.preventDefault();
           Sound.note(midi, { timbre: 'piano' });
+          rect.setAttribute('fill', '#DCC9A6');
+          setTimeout(function () { rect.setAttribute('fill', baseFill); }, 180);
         });
       }
       return group;
@@ -170,7 +206,7 @@
     var footLayer = el('g', {});
 
     whiteMidis.forEach(function (wm, idx) {
-      var x = PAD + idx * WW;
+      var x = x0 + idx * WW;
       whiteLayer.appendChild(addKey(wm, x, WW - 1.5, wh, true));
       var fw = foot(wm, x, WW - 1.5);
       if (fw) { footLayer.appendChild(fw); }
@@ -184,9 +220,73 @@
       }
     });
 
+    /* les negres de les vores, senceres */
+    if (edgeLeft) {
+      var lx = x0 - BW / 2 - 0.75;
+      blackLayer.appendChild(addKey(from - 1, lx, BW, bh, false));
+      var fl = foot(from - 1, lx, BW);
+      if (fl) { footLayer.appendChild(fl); }
+    }
+    if (edgeRight) {
+      var rx = x0 + whiteCount * WW - BW / 2 - 0.75;
+      blackLayer.appendChild(addKey(lastWhite + 1, rx, BW, bh, false));
+      var fr = foot(lastWhite + 1, rx, BW);
+      if (fr) { footLayer.appendChild(fr); }
+    }
+
     svg.appendChild(whiteLayer);
     svg.appendChild(blackLayer);
     svg.appendChild(footLayer);
+
+    if (o.keyHandlers) {
+      /* un sol joc de gestors per a tot el teclat, amb seguiment per
+         punter: multitactil, i cap tecla morta si un listener falla */
+      var activePointers = {};
+
+      var keyOf = function (target) {
+        var t = target;
+        while (t && t !== svg) {
+          if (t.getAttribute) {
+            var m = t.getAttribute('data-midi');
+            if (m !== null && m !== undefined) { return Number(m); }
+          }
+          t = t.parentNode;
+        }
+        return null;
+      };
+
+      svg.addEventListener('pointerdown', function (ev) {
+        var midi = keyOf(ev.target);
+        if (midi === null) { return; }
+        if (ev.preventDefault) { ev.preventDefault(); }
+        activePointers[ev.pointerId] = {
+          midi: midi, x: ev.clientX || 0, y: ev.clientY || 0
+        };
+        o.keyHandlers.press(midi, keyRefs[midi]);
+        try {
+          if (svg.setPointerCapture && ev.pointerId !== undefined) {
+            svg.setPointerCapture(ev.pointerId);
+          }
+        } catch (e) { /* la captura es un extra, no una condicio */ }
+      });
+
+      svg.addEventListener('pointermove', function (ev) {
+        var a = activePointers[ev.pointerId];
+        if (!a || !o.keyHandlers.move) { return; }
+        o.keyHandlers.move(a.midi, keyRefs[a.midi],
+          (ev.clientX || 0) - a.x, (ev.clientY || 0) - a.y);
+      });
+
+      var endPointer = function (ev) {
+        var a = activePointers[ev.pointerId];
+        if (!a) { return; }
+        delete activePointers[ev.pointerId];
+        o.keyHandlers.release(a.midi, keyRefs[a.midi]);
+      };
+      svg.addEventListener('pointerup', endPointer);
+      svg.addEventListener('pointercancel', endPointer);
+    }
+
     return svg;
   }
 

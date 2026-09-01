@@ -177,7 +177,8 @@ eq(midChord.segs.map(s => s.chord), ['', 'C'], 'texto antes del primer acorde');
 /* ---- renderers survive a stubbed DOM ---- */
 const kb = Piano.render({ from: 48, keys: 15, labels: 'degree', marks: [{ pc: 0, degree: '1', role: 'root' }] });
 ok(kb.tagName === 'svg' && Number(kb.getAttribute('width')) > 0, 'Piano.render devuelve svg');
-eq(kb.getAttribute('width'), String(15 * 34 + 2), 'ancho del teclado');
+eq(kb.getAttribute('width'), String(15 * 34 + 2 + 19 / 2 + 2),
+  'ancho del teclado: 15 blancas mas la negra del borde derecho (C5#)');
 const fb = Fret.render({ fromFret: 0, toFret: 12, marks: [{ pc: 0, degree: '1', role: 'root' }] });
 ok(fb.tagName === 'svg', 'Fret.render devuelve svg');
 const fb1 = Fret.render({ fromFret: 0, toFret: 5, strings: [Theory.GUITAR_STANDARD[0]] });

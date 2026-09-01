@@ -1,15 +1,30 @@
 {
-  "name": "Acordes",
-  "short_name": "Acordes",
-  "description": "Formas de acordes para guitarra y piano, con digitación.",
+  "name": "Acords",
+  "short_name": "Acords",
+  "description": "Formes d'acords per a guitarra i piano, amb digitació.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
-  "background_color": "#0A0A0A",
-  "theme_color": "#0A0A0A",
+  "background_color": "#060605",
+  "theme_color": "#060605",
   "orientation": "any",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
   ]
 }

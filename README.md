@@ -1,7 +1,7 @@
 # Acordes · guitarra y piano
 
 Web de práctica para el móvil: un acorde a pantalla completa, sus posiciones de
-guitarra y sus inversiones de piano, con sonido. Sin nombre, sin cuentas, sin
+guitarra y sus inversiones de piano. Sin nombre, sin cuentas, sin
 backend y sin dependencias: HTML, CSS y JavaScript planos.
 
 ## Publicar en GitHub Pages
@@ -18,6 +18,12 @@ git push -u origin main
 Después, en el repositorio: **Settings → Pages → Source: Deploy from a branch →
 Branch: `main` / `(root)`**. En un par de minutos queda en
 `https://USUARIO.github.io/REPO/`.
+
+**Al desplegar cambios de CSS o JS**: sube el número `?v=` de los assets en
+`index.html` (todos a la vez). GitHub Pages y los móviles cachean fuerte; sin
+ese número, un despliegue a medias mezcla JS nuevo con CSS viejo y la página
+sale descolocada hasta que caduque la caché. El archivo de datos
+(`data/chords.json`) no lo necesita: se pide siempre revalidado.
 
 El afinador (cuando se añada) necesita HTTPS para acceder al micrófono; GitHub
 Pages ya sirve por HTTPS, así que funciona. En local, `file://` vale para todo
@@ -56,13 +62,42 @@ desenfocado, y cada una proyecta su sombra sobre lo que pasa por debajo.
   fundamental (que ya suena abajo), la quinta y la novena, por ese orden. La
   digitación va dentro de cada círculo (`L5 L1` · `R1 R2 R3 R5`, 1 pulgar …
   5 meñique) y el nombre de la nota debajo de cada tecla.
-- Tocar un diagrama suena; en el piano, cada tecla por separado.
+
+**Eines**: el carrusel té quatre plans — afinador | guitarra | piano |
+tempo — i les capes fixes es dissolen amb desenfocament en entrar a les eines.
+
+- **Afinador** (pla de l'esquerra): micròfon + autocorrelació, nota gegant que
+  es torna beix quan estàs afinat, regla de cents i avís tensa/afluixa. El
+  micròfon s'engega en arribar al pla i s'allibera en marxar. Necessita HTTPS
+  (GitHub Pages ja en dona).
+- **Tempo** (pla de la dreta): tocar el número l'engega o l'atura; arrossegar-lo
+  (o la roda) el puja o baixa; **picar al ritme sobre l'espai buit del pla**
+  ajusta el BPM (tap tempo sense cap control extra, amb el número fent un batec
+  a cada toc). El compàs s'obre com els selectors d'acords: 3/4 i 4/4 en gran,
+  2/4, 5/4 i 6/8 en petit. El clic va planificat sobre el rellotge d'àudio i
+  **segueix sonant encara que tornis a l'instrument**, per practicar-hi a sobre.
+  És l'únic so de tota la web.
 
 **Abajo, fijo: la posición.** En guitarra recorre todas las formas conocidas
 (abierta primero, luego las cejillas de menor a mayor traste); en piano, las
 **inversiones**. Y ahí es donde aparece el **cifrado con bajo**, que es lo que
 una inversión es de verdad: `C` → `C/E` → `C/G`. En guitarra se calcula a partir
 de la cuerda más grave que suena en cada posición.
+
+**Pianet lliure**: la icona de tres tecles (a dalt a la dreta) converteix el
+mòbil sencer en un piano — a pantalla completa, girat 90° si el tens en
+vertical, amb una creu discreta per sortir. Quatre octaves (C2–C6): el teclat
+es mou arrossegant per la franja dels Do (cada Do porta el seu indicador
+d'octava) o per l'aire de sobre i de sota, amb una línia de posició beix que
+apareix mentre arrossegues. El cos de la tecla **polsa** — s'encén en blanc,
+s'enfonsa un pèl i sona mentre la mantens, amb un coixí suau tipus pad —;
+**lliscar-la cap avall la deixa fixada sonant en beix** i lliscar-la cap amunt
+la deixa anar. Les negres alcades van amb vora negra perquè no es perdin. Va
+bé per comprovar com sona un acord o si has tret el to d'una cançó.
+
+**Apaïsat**: en horitzontal el layout s'adapta — les dues mans del piano van
+costat a costat (l'esquerra a l'esquerra) i el diagrama de guitarra s'ajeu,
+amb la celleta a l'esquerra i la 6a corda a baix, com veus el màstil en tocar.
 
 Recuerda el último acorde y el instrumento. Con el manifest incluido se puede
 **añadir a la pantalla de inicio** y se abre sin barras del navegador.

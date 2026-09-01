@@ -120,7 +120,7 @@
     OPEN.forEach(function (s) {
       if (Theory.nameToPc(s.root) === pc && s.q === quality) {
         out.push({
-          name: s.name, label: 'Posición abierta', frets: s.frets.slice(),
+          name: s.name, label: 'posició oberta', frets: s.frets.slice(),
           fingers: s.fingers.slice(), base: 1, movable: false
         });
       }

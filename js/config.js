@@ -42,6 +42,19 @@
       fail('piano', 'faltan las reglas de piano (fingers, leftHand, rightHand)');
     }
 
+    if (data.rootTiers) {
+      var flat = [];
+      data.rootTiers.forEach(function (tier) { flat = flat.concat(tier); });
+      if (flat.length !== 12) { fail('rootTiers', 'deben cubrir exactamente las 12 notas'); }
+      var pcs = {};
+      flat.forEach(function (name) {
+        var pc = Theory.nameToPc(name);
+        if (pc === null) { fail('rootTiers', 'nota ilegible: ' + name); }
+        if (pcs[pc]) { fail('rootTiers', 'nota repetida: ' + name); }
+        pcs[pc] = true;
+      });
+    }
+
     var seenIds = {}, seenSuffix = {};
     data.types.forEach(function (t) {
       var where = 'types/' + (t.id || '¿sin id?');
@@ -53,6 +66,9 @@
       }
       if (seenSuffix[t.suffix]) { fail(where, 'suffix repetido: "' + t.suffix + '"'); }
       seenSuffix[t.suffix] = true;
+      if (t.tier !== undefined && [1, 2, 3].indexOf(t.tier) === -1) {
+        fail(where, 'tier debe ser 1, 2 o 3');
+      }
       if (!Array.isArray(t.intervals) || !t.intervals.length) { fail(where, 'faltan intervals'); }
       if (t.intervals[0] !== 0) { fail(where, 'el primer intervalo debe ser 0 (la fundamental)'); }
       if (!Array.isArray(t.degrees) || t.degrees.length !== t.intervals.length) {
@@ -109,7 +125,7 @@
       });
       (g.movable || []).forEach(function (m) {
         movable.push({
-          q: t.id, label: m.label || 'posición',
+          q: t.id, label: m.label || 'posició',
           rootString: 6 - m.rootString,    /* 6..1 humano -> índice 0..5 */
           rootRel: 0,
           rel: m.rel.slice(), fingers: m.fingers.slice(),

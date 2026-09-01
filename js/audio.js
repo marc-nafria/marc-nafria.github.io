@@ -192,6 +192,58 @@
     o.stop(t + 0.08);
   }
 
+  /**
+   * Coixi suau i sostingut per al pianet lliure: atac lent, tres
+   * oscil·ladors desafinats un pel i filtre tancat. Es queda sonant
+   * fins que es crida release(), que esvaeix en ~0.8 s.
+   */
+  function padOn(midi) {
+    if (!ready()) { return { release: function () {} }; }
+    var freq = global.Theory.midiToFreq(midi);
+    var out = ctx.createGain();
+    var lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = Math.min(2400, freq * 4);
+    lp.Q.value = 0.4;
+
+    var oscs = [];
+    [
+      ['sawtooth', freq, -5, 0.11],
+      ['sawtooth', freq, 5, 0.11],
+      ['triangle', freq, 0, 0.5],
+      ['sine', freq * 2, 0, 0.06]
+    ].forEach(function (spec) {
+      var o = osc(spec[0], spec[1], spec[2]);
+      var g = ctx.createGain();
+      g.gain.value = spec[3];
+      o.connect(g);
+      g.connect(lp);
+      o.start(ctx.currentTime);
+      oscs.push(o);
+    });
+
+    var t = ctx.currentTime;
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.linearRampToValueAtTime(0.14, t + 0.22);
+    lp.connect(out);
+    out.connect(master);
+
+    var done = false;
+    return {
+      release: function () {
+        if (done) { return; }
+        done = true;
+        var n = ctx.currentTime;
+        try {
+          out.gain.cancelScheduledValues(n);
+          out.gain.setValueAtTime(Math.max(out.gain.value || 0.14, 0.0001), n);
+          out.gain.exponentialRampToValueAtTime(0.0001, n + 0.8);
+          oscs.forEach(function (o) { o.stop(n + 0.9); });
+        } catch (e) { /* ja aturat */ }
+      }
+    };
+  }
+
   /** Steady reference tone for the tuner (returns a stop function). */
   function tone(freq, dur) {
     if (!ready()) { return function () {}; }
@@ -228,6 +280,7 @@
     sequence: sequence,
     stopSequence: stopSequence,
     click: click,
+    padOn: padOn,
     tone: tone,
     get ctx() { return ctx; }
   };

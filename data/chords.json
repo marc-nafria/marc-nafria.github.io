@@ -1,36 +1,40 @@
 {
   "version": 1,
   "readme": [
-    "Este es el archivo de datos de la aplicación. Se puede editar aquí mismo en",
-    "GitHub y los cambios salen publicados sin tocar nada de código.",
+    "Aquest es l'arxiu de dades de l'aplicacio. Es pot editar aqui mateix a",
+    "GitHub i els canvis surten publicats sense tocar gens de codi.",
     "",
-    "types: los acordes que aparecen en el selector de extensión, en ese orden.",
-    "  id         nombre interno, no lo cambies si no sabes dónde se usa",
-    "  suffix     lo que se escribe detrás de la fundamental: C, Cm, Cmaj7...",
-    "  label      lo que se lee en el selector",
-    "  name       nombre largo, se lee bajo el acorde",
-    "  intervals  semitonos desde la fundamental (0 = la propia fundamental)",
-    "  degrees    el grado de cada intervalo, en el mismo orden",
+    "types: els acords que surten al selector d'extensio, en aquest ordre.",
+    "  id         nom intern; no el canviis si no saps on es fa servir",
+    "  suffix     el que s'escriu darrere la fonamental: C, Cm, Cmaj7...",
+    "  label      el que es llegeix al selector",
+    "  name       nom llarg, es llegeix sota l'acord",
+    "  intervals  semitons des de la fonamental (0 = la fonamental)",
+    "  degrees    el grau de cada interval, en el mateix ordre",
+    "  tier       mida al selector: 1 gran (popular), 2 mitja, 3 petita",
     "",
-    "guitar.open: posiciones concretas. frets va de la 6ª cuerda a la 1ª;",
-    "  -1 = cuerda silenciada, 0 = al aire. fingers en el mismo orden,",
-    "  0 = sin dedo (1 índice, 2 medio, 3 anular, 4 meñique).",
+    "rootTiers: tres nivells de mida per al selector de fonamentals, de mes",
+    "  popular/facil (gran) a menys (petita). Han de cobrir les 12 notes.",
     "",
-    "guitar.movable: formas transportables. rel son los trastes relativos a la",
-    "  cejilla (null = cuerda silenciada), rootString es la cuerda que lleva la",
-    "  fundamental contada como en la guitarra (6 = la más gruesa) y minBase el",
-    "  traste mínimo desde el que la forma se puede tocar.",
+    "guitar.open: posicions concretes. frets va de la 6a corda a la 1a;",
+    "  -1 = corda silenciada, 0 = a l'aire. fingers en el mateix ordre,",
+    "  0 = sense dit (1 index, 2 mig, 3 anular, 4 petit).",
     "",
-    "Todo lo que añadas aquí lo valida tests/theory-shapes.js: comprueba que",
-    "ninguna nota es ajena al acorde, que la fundamental suena, que la posición",
-    "se abarca con una mano y que la digitación es coherente."
+    "guitar.movable: formes transportables. rel son els trasts relatius a la",
+    "  celleta (null = corda silenciada), rootString es la corda que porta la",
+    "  fonamental comptada com a la guitarra (6 = la mes gruixuda) i minBase",
+    "  el trast minim que es pot trepitjar.",
+    "",
+    "Tot el que afegeixis aqui ho valida tests/theory-shapes.js: comprova que",
+    "cap nota es aliena a l'acord, que la fonamental sona, que la posicio",
+    "s'abasta amb una ma i que la digitacio es coherent."
   ],
   "spelling": ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"],
   "piano": {
     "rightHand": {
       "maxNotes": 4,
       "omitOrder": ["1", "5", "9"],
-      "comment": "Si el acorde tiene más notas de las que caben en una mano, la derecha suelta por este orden: la fundamental (que ya la lleva la izquierda), la quinta y la novena. El bajo de la inversión nunca se suelta."
+      "comment": "Si l'acord te mes notes de les que caben en una ma, la dreta deixa anar per aquest ordre: la fonamental (que ja la porta l'esquerra), la quinta i la novena. El baix de la inversio no es deixa anar mai."
     },
     "leftHand": {
       "default": "octave",
@@ -38,7 +42,7 @@
       "byType": {
         "pow": "fifth"
       },
-      "comment": "octave = bajo doblado a la octava. fifth = bajo y quinta. shell = bajo y séptima, la mano izquierda del jazz. El bajo es siempre el de la inversión que estés viendo."
+      "comment": "octave = baix doblat a l'octava. fifth = baix i quinta. shell = baix i setima, la ma esquerra del jazz. El baix es sempre el de la inversio que estas veient."
     },
     "fingers": {
       "right": {
@@ -57,15 +61,15 @@
         "4": [5, 3, 2, 1],
         "5": [5, 4, 3, 2, 1]
       },
-      "comment": "1 pulgar, 5 meñique, en las dos manos. La variante 'wide' se usa cuando el salto de arriba pasa de una tercera."
+      "comment": "1 polze, 5 dit petit, a les dues mans. La variant 'wide' es fa servir quan el salt de dalt passa d'una tercera."
     }
   },
   "types": [
     {
       "id": "maj",
       "suffix": "",
-      "label": "mayor",
-      "name": "Mayor",
+      "label": "major",
+      "name": "Major",
       "intervals": [0, 4, 7],
       "degrees": ["1", "3", "5"],
       "guitar": {
@@ -96,7 +100,7 @@
           },
           {
             "root": "F",
-            "name": "F (4 cuerdas)",
+            "name": "F (4 cordes)",
             "frets": [-1, -1, 3, 2, 1, 1],
             "fingers": [0, 0, 3, 2, 1, 1]
           },
@@ -115,14 +119,14 @@
         ],
         "movable": [
           {
-            "label": "cejilla forma E",
+            "label": "celleta forma E",
             "rootString": 6,
             "rel": [0, 2, 2, 1, 0, 0],
             "fingers": [1, 3, 4, 2, 1, 1],
             "minBase": 1
           },
           {
-            "label": "cejilla forma A",
+            "label": "celleta forma A",
             "rootString": 5,
             "rel": [null, 0, 2, 2, 2, 0],
             "fingers": [0, 1, 3, 3, 3, 1],
@@ -136,7 +140,8 @@
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 1
     },
     {
       "id": "min",
@@ -174,14 +179,14 @@
         ],
         "movable": [
           {
-            "label": "cejilla forma Em",
+            "label": "celleta forma Em",
             "rootString": 6,
             "rel": [0, 2, 2, 0, 0, 0],
             "fingers": [1, 3, 4, 1, 1, 1],
             "minBase": 1
           },
           {
-            "label": "cejilla forma Am",
+            "label": "celleta forma Am",
             "rootString": 5,
             "rel": [null, 0, 2, 2, 1, 0],
             "fingers": [0, 1, 3, 4, 2, 1],
@@ -195,13 +200,14 @@
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 1
     },
     {
       "id": "dom7",
       "suffix": "7",
       "label": "7",
-      "name": "Séptima de dominante",
+      "name": "Sètima de dominant",
       "intervals": [0, 4, 7, 10],
       "degrees": ["1", "3", "5", "b7"],
       "guitar": {
@@ -245,27 +251,28 @@
         ],
         "movable": [
           {
-            "label": "cejilla forma E7",
+            "label": "celleta forma E7",
             "rootString": 6,
             "rel": [0, 2, 0, 1, 0, 0],
             "fingers": [1, 3, 1, 2, 1, 1],
             "minBase": 1
           },
           {
-            "label": "cejilla forma A7",
+            "label": "celleta forma A7",
             "rootString": 5,
             "rel": [null, 0, 2, 0, 2, 0],
             "fingers": [0, 1, 3, 1, 4, 1],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 1
     },
     {
       "id": "maj7",
       "suffix": "maj7",
       "label": "maj7",
-      "name": "Séptima mayor",
+      "name": "Sètima major",
       "intervals": [0, 4, 7, 11],
       "degrees": ["1", "3", "5", "7"],
       "guitar": {
@@ -303,27 +310,28 @@
         ],
         "movable": [
           {
-            "label": "raíz en 6ª",
+            "label": "arrel a la 6a",
             "rootString": 6,
             "rel": [0, null, 1, 1, 0, null],
             "fingers": [1, 0, 2, 3, 1, 0],
             "minBase": 1
           },
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 2, 1, 2, null],
             "fingers": [0, 1, 3, 2, 4, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "min7",
       "suffix": "m7",
       "label": "m7",
-      "name": "Séptima menor",
+      "name": "Sètima menor",
       "intervals": [0, 3, 7, 10],
       "degrees": ["1", "b3", "5", "b7"],
       "guitar": {
@@ -355,27 +363,28 @@
         ],
         "movable": [
           {
-            "label": "cejilla forma Em7",
+            "label": "celleta forma Em7",
             "rootString": 6,
             "rel": [0, 2, 0, 0, 0, 0],
             "fingers": [1, 3, 1, 1, 1, 1],
             "minBase": 1
           },
           {
-            "label": "cejilla forma Am7",
+            "label": "celleta forma Am7",
             "rootString": 5,
             "rel": [null, 0, 2, 0, 1, 0],
             "fingers": [0, 1, 3, 1, 2, 1],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "six",
       "suffix": "6",
       "label": "6",
-      "name": "Mayor con sexta",
+      "name": "Major amb sexta",
       "intervals": [0, 4, 7, 9],
       "degrees": ["1", "3", "5", "6"],
       "guitar": {
@@ -401,20 +410,21 @@
         ],
         "movable": [
           {
-            "label": "raíz en 6ª",
+            "label": "arrel a la 6a",
             "rootString": 6,
             "rel": [0, 2, 2, 1, 2, null],
             "fingers": [1, 3, 3, 2, 4, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "min6",
       "suffix": "m6",
       "label": "m6",
-      "name": "Menor con sexta",
+      "name": "Menor amb sexta",
       "intervals": [0, 3, 7, 9],
       "degrees": ["1", "b3", "5", "6"],
       "guitar": {
@@ -434,20 +444,21 @@
         ],
         "movable": [
           {
-            "label": "cejilla forma Am6",
+            "label": "celleta forma Am6",
             "rootString": 5,
             "rel": [null, 0, 2, 2, 1, 2],
             "fingers": [0, 1, 3, 3, 2, 4],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "sus2",
       "suffix": "sus2",
       "label": "sus2",
-      "name": "Suspendido de segunda",
+      "name": "Suspès de segona",
       "intervals": [0, 2, 7],
       "degrees": ["1", "2", "5"],
       "guitar": {
@@ -467,20 +478,21 @@
         ],
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 2, 2, 0, null],
             "fingers": [0, 1, 3, 4, 1, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "sus4",
       "suffix": "sus4",
       "label": "sus4",
-      "name": "Suspendido de cuarta",
+      "name": "Suspès de quarta",
       "intervals": [0, 5, 7],
       "degrees": ["1", "4", "5"],
       "guitar": {
@@ -506,20 +518,21 @@
         ],
         "movable": [
           {
-            "label": "cejilla raíz en 6ª",
+            "label": "celleta, arrel a la 6a",
             "rootString": 6,
             "rel": [0, 2, 2, 2, 0, 0],
             "fingers": [1, 2, 3, 4, 1, 1],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "add9",
       "suffix": "add9",
       "label": "add9",
-      "name": "Mayor con novena añadida",
+      "name": "Major amb novena afegida",
       "intervals": [0, 4, 7, 14],
       "degrees": ["1", "3", "5", "9"],
       "guitar": {
@@ -533,20 +546,21 @@
         ],
         "movable": [
           {
-            "label": "forma Cadd9 movida",
+            "label": "forma Cadd9 moguda",
             "rootString": 5,
             "rel": [null, 0, -1, -3, 0, 0],
             "fingers": [0, 3, 2, 1, 4, 4],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "dom9",
       "suffix": "9",
       "label": "9",
-      "name": "Novena de dominante",
+      "name": "Novena de dominant",
       "intervals": [0, 4, 7, 10, 14],
       "degrees": ["1", "3", "5", "b7", "9"],
       "guitar": {
@@ -560,33 +574,35 @@
         ],
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, -1, 0, 0, null],
             "fingers": [0, 2, 1, 3, 4, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "maj9",
       "suffix": "maj9",
       "label": "maj9",
-      "name": "Novena mayor",
+      "name": "Novena major",
       "intervals": [0, 4, 7, 11, 14],
       "degrees": ["1", "3", "5", "7", "9"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, -1, 1, 0, null],
             "fingers": [0, 2, 1, 4, 3, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "min9",
@@ -598,20 +614,21 @@
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 6ª",
+            "label": "arrel a la 6a",
             "rootString": 6,
             "rel": [0, null, 0, 0, null, 2],
             "fingers": [1, 0, 1, 1, 0, 3],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 2
     },
     {
       "id": "six9",
       "suffix": "6/9",
       "label": "6/9",
-      "name": "Sexta con novena",
+      "name": "Sexta amb novena",
       "intervals": [0, 4, 7, 9, 14],
       "degrees": ["1", "3", "5", "6", "9"],
       "guitar": {
@@ -625,20 +642,21 @@
         ],
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, -1, -1, 0, 0],
             "fingers": [0, 2, 1, 1, 3, 4],
             "minBase": 2
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dom7sus4",
       "suffix": "7sus4",
       "label": "7sus4",
-      "name": "Séptima con cuarta suspendida",
+      "name": "Sètima amb quarta suspesa",
       "intervals": [0, 5, 7, 10],
       "degrees": ["1", "4", "5", "b7"],
       "guitar": {
@@ -658,20 +676,21 @@
         ],
         "movable": [
           {
-            "label": "cejilla raíz en 6ª",
+            "label": "celleta, arrel a la 6a",
             "rootString": 6,
             "rel": [0, 2, 0, 2, 0, 0],
             "fingers": [1, 3, 1, 4, 1, 1],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "m7b5",
       "suffix": "m7b5",
       "label": "m7b5",
-      "name": "Semidisminuido",
+      "name": "Semidisminuït",
       "intervals": [0, 3, 6, 10],
       "degrees": ["1", "b3", "b5", "b7"],
       "guitar": {
@@ -685,77 +704,81 @@
         ],
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 1, 0, 1, null],
             "fingers": [0, 2, 3, 1, 4, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dim",
       "suffix": "dim",
       "label": "dim",
-      "name": "Disminuido",
+      "name": "Disminuït",
       "intervals": [0, 3, 6],
       "degrees": ["1", "b3", "b5"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 1, 2, 1, null],
             "fingers": [0, 1, 2, 4, 3, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dim7",
       "suffix": "dim7",
       "label": "dim7",
-      "name": "Séptima disminuida",
+      "name": "Sètima disminuïda",
       "intervals": [0, 3, 6, 9],
       "degrees": ["1", "b3", "b5", "bb7"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 1, -1, 1, null],
             "fingers": [0, 2, 3, 1, 4, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "aug",
       "suffix": "aug",
       "label": "aug",
-      "name": "Aumentado",
+      "name": "Augmentat",
       "intervals": [0, 4, 8],
       "degrees": ["1", "3", "#5"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 3, 2, 2, null],
             "fingers": [0, 1, 4, 2, 3, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "mMaj7",
       "suffix": "mMaj7",
       "label": "mMaj7",
-      "name": "Menor con séptima mayor",
+      "name": "Menor amb sètima major",
       "intervals": [0, 3, 7, 11],
       "degrees": ["1", "b3", "5", "7"],
       "guitar": {
@@ -769,77 +792,81 @@
         ],
         "movable": [
           {
-            "label": "cejilla forma Em(maj7)",
+            "label": "celleta forma Em(maj7)",
             "rootString": 6,
             "rel": [0, 2, 1, 0, 0, 0],
             "fingers": [1, 3, 2, 1, 1, 1],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dom7b5",
       "suffix": "7b5",
       "label": "7b5",
-      "name": "Séptima con quinta bemol",
+      "name": "Sètima amb quinta bemoll",
       "intervals": [0, 4, 6, 10],
       "degrees": ["1", "3", "b5", "b7"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 1, 0, 2, null],
             "fingers": [0, 1, 2, 1, 4, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "aug7",
       "suffix": "7#5",
       "label": "7#5",
-      "name": "Séptima con quinta aumentada",
+      "name": "Sètima amb quinta augmentada",
       "intervals": [0, 4, 8, 10],
       "degrees": ["1", "3", "#5", "b7"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 3, 0, 2, null],
             "fingers": [0, 1, 4, 1, 3, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dom7b9",
       "suffix": "7b9",
       "label": "7b9",
-      "name": "Séptima con novena bemol",
+      "name": "Sètima amb novena bemoll",
       "intervals": [0, 4, 7, 10, 13],
       "degrees": ["1", "3", "5", "b7", "b9"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, -1, 0, -1, null],
             "fingers": [0, 2, 1, 3, 1, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dom7s9",
       "suffix": "7#9",
       "label": "7#9",
-      "name": "Séptima con novena aumentada",
+      "name": "Sètima amb novena augmentada",
       "intervals": [0, 4, 7, 10, 15],
       "degrees": ["1", "3", "5", "b7", "#9"],
       "guitar": {
@@ -852,64 +879,68 @@
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dom11",
       "suffix": "11",
       "label": "11",
-      "name": "Undécima de dominante",
+      "name": "Onzena de dominant",
       "intervals": [0, 7, 10, 14, 17],
       "degrees": ["1", "5", "b7", "9", "11"],
       "guitar": {
         "movable": [
           {
-            "label": "cejilla raíz en 5ª",
+            "label": "celleta, arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 0, 0, 0, null],
             "fingers": [0, 1, 1, 1, 1, 0],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "min11",
       "suffix": "m11",
       "label": "m11",
-      "name": "Undécima menor",
+      "name": "Onzena menor",
       "intervals": [0, 3, 7, 10, 17],
       "degrees": ["1", "b3", "5", "b7", "11"],
       "guitar": {
         "movable": [
           {
-            "label": "cejilla completa",
+            "label": "celleta completa",
             "rootString": 6,
             "rel": [0, 0, 0, 0, 0, 0],
             "fingers": [1, 1, 1, 1, 1, 1],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "dom13",
       "suffix": "13",
       "label": "13",
-      "name": "Decimotercera de dominante",
+      "name": "Tretzena de dominant",
       "intervals": [0, 4, 7, 10, 14, 21],
       "degrees": ["1", "3", "5", "b7", "9", "13"],
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, -1, 0, 0, 2],
             "fingers": [0, 2, 1, 3, 3, 4],
             "minBase": 1
           }
         ]
-      }
+      },
+      "tier": 3
     },
     {
       "id": "pow",
@@ -921,21 +952,27 @@
       "guitar": {
         "movable": [
           {
-            "label": "raíz en 6ª",
+            "label": "arrel a la 6a",
             "rootString": 6,
             "rel": [0, 2, null, null, null, null],
             "fingers": [1, 3, 0, 0, 0, 0],
             "minBase": 0
           },
           {
-            "label": "raíz en 5ª",
+            "label": "arrel a la 5a",
             "rootString": 5,
             "rel": [null, 0, 2, null, null, null],
             "fingers": [0, 1, 3, 0, 0, 0],
             "minBase": 0
           }
         ]
-      }
+      },
+      "tier": 3
     }
+  ],
+  "rootTiers": [
+    ["C", "D", "E", "F", "G", "A"],
+    ["B", "Bb", "Eb"],
+    ["Ab", "C#", "F#"]
   ]
 }
