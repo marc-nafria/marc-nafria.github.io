@@ -608,6 +608,29 @@ guard('pianet lliure', () => {
   ok(document.body.querySelectorAll('.fp-wrap').length === 0, 'i tanca el piano');
 });
 
+guard('res no roba el gest de lliscar (al mòbil el carrusel ha de córrer)', () => {
+  ['guitar', 'piano'].forEach(ins => {
+    const panel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === ins);
+    const svg = panel.querySelectorAll('svg')[0];
+    const withHandlers = svg.querySelectorAll('g')
+      .filter(g => g.listeners && Object.keys(g.listeners).length > 0).length;
+    const onSvg = svg.listeners ? Object.keys(svg.listeners).length : 0;
+    ok(withHandlers === 0 && onSvg === 0,
+      'el diagrama de ' + ins + ' és mut i sense gestors: ' + withHandlers + '/' + onSvg);
+  });
+});
+
+guard('l’afinador demana un toc (iOS no obre el micròfon tot sol)', () => {
+  window.Practice.goTo('tuner');
+  const tuner = app.querySelectorAll('.panel')[0].querySelectorAll('.tool-inner')[0];
+  ok(!!tuner, 'el pla de l’afinador hi és');
+  const mic = tuner.querySelectorAll('.mic-btn')[0];
+  ok(!!mic, 'amb el seu botó de micròfon');
+  ok(mic.hidden === false, 'que es mostra en arribar-hi, esperant el toc');
+  ok(!!(tuner.listeners && tuner.listeners.pointerdown),
+    'i qualsevol toc del pla també val');
+});
+
 guard('les tecles marcades semblen polsades', () => {
   const kb = app.querySelectorAll('.kb')[0];
   const svg = kb.querySelectorAll('svg')[0];

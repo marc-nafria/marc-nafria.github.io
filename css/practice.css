@@ -3,11 +3,8 @@
    Outfit en negre (900) per a l'acord, JetBrains Mono per a les
    xifres. Tipografia sobre vidre, cap caixa.
 
-   La profunditat la donen tres coses, no adorns:
-     · el pla que llisca és un pel més clar que el fons i porta la
-       seva pròpia llum,
-     · les capes fixes de dalt i de baix són vidre fosc desenfocat,
-     · i cadascuna projecta la seva ombra sobre el pla de sota.
+   El fons és llis: un sol negre, amb una mica més de llum al centre
+   i prou. Cap vidre, cap ombra, cap costura entre seccions.
 
    Sistema: dos micro-rètols (58/66 per mil de rem, tracking .16em),
    beix només per a l'extensió, l'accent i allò triat.
@@ -15,14 +12,14 @@
 
 :root {
   --bg:    #060605;   /* el fons de tot, el pla més llunyà */
-  --plane: #0C0C0B;   /* el pla que llisca */
+  --plane: #060605;   /* el pla que llisca: el mateix negre llis */
   --line:  #3A3733;   /* tics i punts apagats */
   --text:  #F4F1EB;
   --beige: #DCC9A6;
   --muted: #948D83;
   --dim:   #66605A;
 
-  --top-h: 150px;
+  --top-h: 196px;
   --bot-h: 116px;
   --pad:   14px;
 
@@ -60,6 +57,13 @@ button {
   overflow: hidden;
   background: var(--bg);
 }
+/* l'unica llum de tota la pantalla: al centre, quieta */
+#app::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(120% 66% at 50% 48%, rgba(255, 255, 255, .055), transparent 70%);
+  pointer-events: none;
+}
 
 /* ---------------- el plano deslizante ---------------- */
 .deck {
@@ -78,23 +82,13 @@ button {
   height: 100%;
   overflow: hidden;                 /* dentro no se hace scroll: todo cabe */
   scroll-snap-align: center;
-  background: var(--plane);
+  background: transparent;          /* el fons llis de sota es veu i prou */
 }
-/* la costura entre planos: solo se ve mientras deslizas */
-.panel + .panel { box-shadow: inset 1px 0 0 rgba(255,255,255,.06); }
-
 .panel-inner {
   position: relative;
   height: 100%;
   display: flex; flex-direction: column; justify-content: center; gap: 8px;
   padding: calc(var(--top-h) + 8px) var(--pad) calc(var(--bot-h) + 8px);
-}
-/* la luz propia de cada plano: al deslizar, se desplaza con él */
-.panel-inner::before {
-  content: "";
-  position: absolute; inset: 0; z-index: 0;
-  background: radial-gradient(110% 70% at 50% 34%, rgba(255,255,255,.05), transparent 72%);
-  pointer-events: none;
 }
 .panel-inner > * { position: relative; z-index: 1; }
 
@@ -104,35 +98,12 @@ button {
   pointer-events: none;
   transition: opacity .32s ease, filter .32s ease;
 }
-/* cristal: desenfoca lo que pasa por debajo y lo oscurece, con el
-   borde difuminado para que no se vea el corte */
-.pinned::before {
-  content: "";
-  position: absolute; inset: 0;
-  backdrop-filter: blur(22px) saturate(.85);
-  -webkit-backdrop-filter: blur(22px) saturate(.85);
-}
-/* la sombra que la capa proyecta sobre el plano */
-.pinned::after {
-  content: "";
-  position: absolute; left: 0; right: 0; height: 30px;
-  pointer-events: none;
-}
 .pinned-inner { position: relative; z-index: 1; pointer-events: auto; }
 
 .pinned-top { top: 0; }
-.pinned-top::before {
-  background: linear-gradient(180deg, rgba(6,6,5,.94) 0%, rgba(6,6,5,.74) 58%, rgba(6,6,5,0) 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0,0,0,.38) 78%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0,0,0,.38) 78%, transparent 100%);
-}
-.pinned-top::after {
-  top: 100%;
-  background: linear-gradient(180deg, rgba(0,0,0,.5), transparent);
-}
 .pinned-top .pinned-inner {
   position: relative;
-  padding: calc(26px + env(safe-area-inset-top)) var(--pad) 14px;
+  padding: calc(74px + env(safe-area-inset-top)) var(--pad) 14px;
   text-align: center;
 }
 
@@ -148,15 +119,6 @@ button {
 .piano-btn:active i { background: var(--beige); }
 
 .pinned-bottom { bottom: 0; }
-.pinned-bottom::before {
-  background: linear-gradient(0deg, rgba(6,6,5,.95) 0%, rgba(6,6,5,.8) 60%, rgba(6,6,5,0) 100%);
-  -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 56%, rgba(0,0,0,.38) 84%, transparent 100%);
-  mask-image: linear-gradient(0deg, #000 0%, #000 56%, rgba(0,0,0,.38) 84%, transparent 100%);
-}
-.pinned-bottom::after {
-  bottom: 100%;
-  background: linear-gradient(0deg, rgba(0,0,0,.5), transparent);
-}
 .pinned-bottom .pinned-inner {
   display: flex; flex-direction: column; align-items: center; gap: 9px;
   padding: 8px var(--pad) calc(8px + env(safe-area-inset-bottom));
@@ -166,7 +128,7 @@ button {
 .chord-name {
   display: flex; align-items: baseline; justify-content: center; gap: .05em;
   margin: 0;
-  font-size: clamp(3.4rem, 20vw, 5.4rem);
+  font-size: clamp(4.2rem, 26vw, 7rem);
   font-weight: 900; line-height: .9; letter-spacing: -.03em;
 }
 .tok {
@@ -499,11 +461,13 @@ button {
 
 /* ---------------- móvil en horizontal ---------------- */
 @media (max-height: 480px) {
-  :root { --top-h: 96px; --bot-h: 96px; }
-  .chord-name { font-size: 2.6rem; }
+  /* aqui l'alcada es or, pero l'acord tambe baixa i creix: mes peca de
+     la pagina que titol, nomes amb mesures d'apaisat */
+  :root { --top-h: 122px; --bot-h: 92px; }
+  .chord-name { font-size: clamp(3.2rem, 9vh, 4rem); }
   .chord-line { display: none; }
-  .pinned-top .pinned-inner { padding: calc(12px + env(safe-area-inset-top)) var(--pad) 10px; }
-  .piano-btn { top: calc(8px + env(safe-area-inset-top)); }
+  .pinned-top .pinned-inner { padding: calc(34px + env(safe-area-inset-top)) var(--pad) 10px; }
+  .piano-btn { top: calc(10px + env(safe-area-inset-top)); }
   .chev { height: 36px; }
   .kb-head { font-size: .52rem; }
 

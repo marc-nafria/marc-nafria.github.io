@@ -202,6 +202,18 @@
       paint(-1);
     }
 
+    /* iOS no deixa engegar l'audio ni el microfon sense un toc de
+       l'usuari: en arribar al pla, es demana el toc; un cop donat el
+       permis, les tornades ja engeguen soles. */
+    var unlocked = false;
+
+    function arm() {
+      if (stream) { return; }
+      if (unlocked) { start(); return; }
+      hintEl.textContent = 'toca per activar el micròfon';
+      micBtn.hidden = false;
+    }
+
     function start() {
       if (stream) { return; }
       var ctx = Sound.ready();
@@ -220,6 +232,8 @@
         analyser.fftSize = BUF_SIZE;
         buffer = new Float32Array(analyser.fftSize);
         source.connect(analyser);          /* nomes analisi: res no va a l'altaveu */
+        unlocked = true;
+        micBtn.hidden = true;
         hintEl.textContent = '';
         lastDetect = 0;
         raf = global.requestAnimationFrame(loop);
@@ -232,10 +246,12 @@
     var el = h('div', { class: 'tool-inner', 'data-tool': 'tuner' }, [
       noteEl, ticksEl, centsEl, hintEl, micBtn
     ]);
+    /* qualsevol toc del pla val com a gest per obrir el microfon */
+    el.addEventListener('pointerdown', function () { start(); });
 
     return {
       el: el,
-      enter: function () { start(); },
+      enter: function () { arm(); },
       leave: function () { stop(); }
     };
   }
@@ -490,59 +506,64 @@
     var MAX_KEY_PX = 62;           /* ample maxim de la blanca */
     var KEY_RATIO = 4.3;           /* llargada de la blanca vs l'ample */
 
-    var SWIPE = 30;   /* px de llisc per fixar o deixar anar una nota */
-    var PAN = 14;     /* px de llisc lateral per passar a moure el teclat */
-    var panning = null;   /* {startLeft} mentre s'arrossega des d'una tecla */
+    var SWIPE = 30;   /* px en l'eix de la tecla per fixar o deixar anar */
+    var PAN = 12;     /* px en l'eix del teclat per passar a moure'l */
+    /* un sol gest a la vegada: mentre mou el teclat no toca cap sustain,
+       i el que passa amb la nota es decideix en aixecar el dit */
+    var g = null;
+
+    function fpDrop(midi, refs) {
+      var a = fpVoices[midi];
+      if (!a) { return; }
+      a.voice.release();
+      delete fpVoices[midi];
+      fpKeyPaint(refs, 'off');
+    }
 
     var handlers = {
       press: function (midi, refs) {
         var a = fpVoices[midi];
-        if (a && a.latched) { return; }   /* fixada: es treu lliscant amunt */
+        g = { midi: midi, wasLatched: !!(a && a.latched), pan: false, down: 0, along: 0,
+              startLeft: kbHost.scrollLeft || 0 };
+        if (g.wasLatched) { return; }   /* ja sona: no la tornem a atacar */
         if (a) { a.voice.release(); }
         fpKeyPaint(refs, 'held');
         fpVoices[midi] = { voice: Sound.padOn(midi), latched: false, refs: refs };
-        panning = null;
-        panStart = kbHost.scrollLeft || 0;
       },
       move: function (midi, refs, dx, dy) {
-        /* cap avall (en l'eix de la tecla) fixa la nota sonant; cap
-           amunt la deixa anar. En vertical el teclat esta girat 90
-           graus, aixi que l'eix de la tecla es l'horitzontal invertida
-           de pantalla. */
+        if (!g || g.midi !== midi) { return; }
+        /* en vertical el teclat esta girat 90 graus: l'eix del teclat es
+           la vertical de pantalla i l'eix de la tecla, l'horitzontal */
         var portrait = (global.innerHeight || 0) > (global.innerWidth || 1);
-        var along = portrait ? dy : dx;
-        var down = portrait ? -dx : dy;
+        g.along = portrait ? dy : dx;
+        g.down = portrait ? -dx : dy;
 
-        /* llisc lateral: el teclat es mou des de qualsevol punt de la
-           pantalla, tecles incloses. La nota encetada es deixa anar. */
-        if (panning || (Math.abs(along) > PAN && Math.abs(along) > Math.abs(down))) {
-          if (!panning) {
-            panning = true;
-            var v = fpVoices[midi];
-            if (v && !v.latched) { v.voice.release(); delete fpVoices[midi]; fpKeyPaint(refs, 'off'); }
-          }
-          kbHost.scrollLeft = panStart - along;
-          fpPosPing();
-          return;
+        /* moure el teclat: des de qualsevol punt, tecles incloses. La
+           nota que s'acabava d'encetar calla, pero cap fixada es toca. */
+        if (!g.pan && Math.abs(g.along) > PAN && Math.abs(g.along) > Math.abs(g.down)) {
+          g.pan = true;
+          if (!g.wasLatched) { fpDrop(midi, refs); }
         }
-
-        var a = fpVoices[midi];
-        if (!a) { return; }
-        if (down > SWIPE && !a.latched) {
-          a.latched = true;
-          fpKeyPaint(refs, 'latched');   /* es veu que ha quedat fixada */
-        } else if (down < -SWIPE && a.latched) {
-          a.voice.release();
-          delete fpVoices[midi];
-          fpKeyPaint(refs, 'off');
+        if (g.pan) {
+          kbHost.scrollLeft = g.startLeft - g.along;
+          fpPosPing();
         }
       },
       release: function (midi, refs) {
+        var gesture = g;
+        g = null;
+        if (!gesture || gesture.pan) { return; }   /* nomes ha mogut el teclat */
+        if (gesture.wasLatched) {
+          /* una fixada es deixa anar amb un toc o lliscant-la cap amunt */
+          if (gesture.down < -SWIPE || Math.abs(gesture.down) < SWIPE) {
+            fpDrop(midi, refs);
+          }
+          return;
+        }
         var a = fpVoices[midi];
-        if (!a || a.latched) { return; }
-        a.voice.release();
-        delete fpVoices[midi];
-        fpKeyPaint(refs, 'off');
+        if (!a) { return; }
+        if (gesture.down > SWIPE) { a.latched = true; }   /* queda sonant */
+        else { fpDrop(midi, refs); }
       }
     };
 
@@ -550,7 +571,6 @@
 
     /* linia de posicio en beix: apareix mentre arrossegues el teclat i
        s'esvaeix sola, perque es vegi on ets de les quatre octaves */
-    var panStart = 0;
     var posThumb = h('i');
     var pos = h('div', { class: 'fp-pos' }, [posThumb]);
     var posTimer = null;

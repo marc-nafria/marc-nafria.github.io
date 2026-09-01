@@ -337,7 +337,9 @@
     if (state.posG >= list.length) { state.posG = 0; }
     var shape = list[state.posG];
     var box = Fret.chordBox(shape, {
-      size: 1, rootPc: state.rootPc, fluid: true,
+      size: 1, rootPc: state.rootPc, fluid: true, playable: false,
+      /* mut, i sobretot: sense gestors que li robin el gest de lliscar
+         al carrusel (al mobil, preventDefault el deixava clavat) */
       horizontal: isLandscape()      /* en apaisat, el mastil s'ajeu */
     });
     return [h('div', { class: 'diagram narrow' }, [box])];
