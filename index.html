@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Formas de acordes para guitarra y piano, con digitación de las dos manos y sonido. Pensado para practicar en el móvil.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Acordes · guitarra y piano</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/practice.css">
+</head>
+<body>
+
+<div id="app"></div>
+
+<script src="js/theory.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/piano.js"></script>
+<script src="js/fretboard.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/config.js"></script>
+<script src="js/practice.js"></script>
+<script>
+Config.load('data/chords.json').then(function () {
+  Practice.start();
+}).catch(function (err) {
+  var msg = String(err && err.message ? err.message : err);
+  var hint = location.protocol === 'file:'
+    ? 'Estás abriendo el archivo directamente: los datos solo cargan servidos por http. Arranca un servidor local (python -m http.server) o súbelo a GitHub Pages.'
+    : 'Revisa data/chords.json: seguramente hay un error de sintaxis en la última edición.';
+  document.getElementById('app').innerHTML =
+    '<div class="boot-error"><b>No se pudieron cargar los acordes</b><span>' +
+    msg.replace(/</g, '&lt;') + '</span><em>' + hint + '</em></div>';
+});
+</script>
+</body>
+</html>

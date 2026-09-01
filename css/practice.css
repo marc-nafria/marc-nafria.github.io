@@ -1,0 +1,366 @@
+/* ============================================================
+   Práctica de acordes - guitarra y piano.
+   Outfit en negro (900) para el acorde, JetBrains Mono para las
+   cifras. Bloques sólidos, sin serif.
+
+   La profundidad la dan tres cosas, no adornos:
+     · el plano del instrumento es un poco más claro que el fondo y
+       lleva su propia luz, así que al deslizar se ve moverse,
+     · las capas fija de arriba y de abajo son cristal oscuro
+       desenfocado,
+     · y cada una proyecta una sombra sobre el plano que pasa por
+       debajo.
+   ============================================================ */
+
+:root {
+  --bg:      #060605;   /* el fondo del todo, el plano más lejano */
+  --plane:   #0C0C0B;   /* el plano que se desliza */
+  --panel:   #191817;   /* botones y bloques */
+  --line:    #2A2825;
+  --line-2:  #3A3733;
+  --text:    #F4F1EB;
+  --beige:   #DCC9A6;
+  --muted:   #948D83;
+  --dim:     #66605A;
+
+  --top-h:   150px;
+  --bot-h:   102px;
+  --pad:     14px;
+
+  --r:       4px;
+  /* Space Grotesk llega hasta 700: ese es el peso "gordo" del sistema,
+     así que no se usa 800 ni 900 (el navegador los falsificaría). */
+  --sans:    "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: inherit;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+:focus-visible { outline: 2px solid var(--beige); outline-offset: 2px; }
+
+#app {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ---------------- el plano deslizante ---------------- */
+.deck {
+  position: absolute; inset: 0;
+  display: flex;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.deck::-webkit-scrollbar { display: none; }
+
+.panel {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  overflow: hidden;                 /* dentro no se hace scroll: todo cabe */
+  scroll-snap-align: center;
+  background: var(--plane);
+}
+/* la costura entre planos: solo se ve mientras deslizas */
+.panel + .panel { box-shadow: inset 1px 0 0 rgba(255,255,255,.06); }
+
+.panel-inner {
+  position: relative;
+  height: 100%;
+  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  padding: calc(var(--top-h) + 8px) var(--pad) calc(var(--bot-h) + 8px);
+}
+/* la luz propia de cada plano: al deslizar, se desplaza con él */
+.panel-inner::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0;
+  background: radial-gradient(110% 70% at 50% 34%, rgba(255,255,255,.05), transparent 72%);
+  pointer-events: none;
+}
+.panel-inner > * { position: relative; z-index: 1; }
+
+/* ---------------- capas fijas ---------------- */
+.pinned {
+  position: absolute; left: 0; right: 0; z-index: 5;
+  pointer-events: none;
+}
+/* cristal: desenfoca lo que pasa por debajo y lo oscurece, con el
+   borde difuminado para que no se vea el corte */
+.pinned::before {
+  content: "";
+  position: absolute; inset: 0;
+  backdrop-filter: blur(22px) saturate(.85);
+  -webkit-backdrop-filter: blur(22px) saturate(.85);
+}
+/* la sombra que la capa proyecta sobre el plano */
+.pinned::after {
+  content: "";
+  position: absolute; left: 0; right: 0; height: 30px;
+  pointer-events: none;
+}
+.pinned-inner { position: relative; z-index: 1; pointer-events: auto; }
+
+.pinned-top { top: 0; }
+.pinned-top::before {
+  background: linear-gradient(180deg, rgba(6,6,5,.94) 0%, rgba(6,6,5,.74) 58%, rgba(6,6,5,0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0,0,0,.38) 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 50%, rgba(0,0,0,.38) 78%, transparent 100%);
+}
+.pinned-top::after {
+  top: 100%;
+  background: linear-gradient(180deg, rgba(0,0,0,.5), transparent);
+}
+.pinned-top .pinned-inner {
+  padding: calc(26px + env(safe-area-inset-top)) var(--pad) 14px;
+  text-align: center;
+}
+
+.pinned-bottom { bottom: 0; }
+.pinned-bottom::before {
+  background: linear-gradient(0deg, rgba(6,6,5,.95) 0%, rgba(6,6,5,.8) 60%, rgba(6,6,5,0) 100%);
+  -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 56%, rgba(0,0,0,.38) 84%, transparent 100%);
+  mask-image: linear-gradient(0deg, #000 0%, #000 56%, rgba(0,0,0,.38) 84%, transparent 100%);
+}
+.pinned-bottom::after {
+  bottom: 100%;
+  background: linear-gradient(0deg, rgba(0,0,0,.5), transparent);
+}
+.pinned-bottom .pinned-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 8px var(--pad) calc(8px + env(safe-area-inset-bottom));
+}
+
+/* ---------------- el acorde, que es el mando ---------------- */
+.chord-name {
+  display: flex; align-items: baseline; justify-content: center; gap: .05em;
+  margin: 0;
+  font-size: clamp(3.4rem, 20vw, 5.4rem);
+  font-weight: 900; line-height: .9; letter-spacing: -.03em;
+}
+.tok {
+  position: relative;
+  appearance: none; background: none; border: 0; padding: 0 2px;
+  font: inherit; letter-spacing: inherit; color: var(--text);
+  cursor: pointer;
+}
+/* la fundamental en blanco, la extensión en beige: cada pieza abre su panel */
+.tok-root { color: var(--text); }
+.tok-ext { color: var(--beige); font-size: .56em; letter-spacing: -.03em; }
+.tok-ext.empty { opacity: .3; }
+.tok::after {
+  content: "";
+  position: absolute; left: 2px; right: 2px; bottom: .1em; height: 3px;
+  background: currentColor; opacity: 0;
+  transform: scaleX(.3); transform-origin: center;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.tok.active::after { opacity: .95; transform: scaleX(1); }
+
+.chord-line {
+  display: flex; justify-content: center; gap: 10px;
+  margin: 8px 0 0;
+  font-size: .62rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--beige);
+}
+.chord-line em {
+  font-style: normal; font-family: var(--mono); font-weight: 800;
+  letter-spacing: .1em; text-transform: none; color: var(--muted);
+}
+
+/* ---------------- diagramas ---------------- */
+.diagram { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; }
+.diagram svg { width: 100%; height: 100%; cursor: pointer; }
+.diagram.narrow { max-width: 420px; margin: 0 auto; }
+
+.empty {
+  flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center;
+  align-items: center; gap: 10px; text-align: center;
+}
+.empty b {
+  font-size: .66rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--beige);
+}
+.empty span { font-size: .82rem; color: var(--dim); max-width: 260px; }
+
+/* un teclado por mano */
+/* la caja del dibujo ya lleva su proporción exacta, así que el bloque
+   se ajusta al contenido y los dos teclados quedan juntos en el centro */
+.kb { flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; }
+/* cada mano se rotula en su lado, como está en el teclado de verdad:
+   la izquierda a la izquierda y la derecha a la derecha */
+.kb-head {
+  flex: none; display: flex;
+  font-size: .54rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--dim);
+}
+.kb-head.kb-r { justify-content: flex-end; }
+.kb-head.kb-l { justify-content: flex-start; }
+
+/* ---------------- posición / inversión ---------------- */
+.pager { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; }
+.pager-main {
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) 46px;
+  align-items: center; gap: 8px; width: 100%; max-width: 330px;
+}
+/* flechas tipográficas: sin caja, solo el glifo */
+.chev {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  height: 44px; padding: 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 1.7rem; font-weight: 500; line-height: 1;
+}
+.chev:active { color: var(--beige); }
+.chev:disabled { opacity: .2; }
+.pager-label { text-align: center; min-width: 0; }
+.pager-label b {
+  display: block;
+  font-family: var(--mono); font-size: 1.04rem; font-weight: 800; letter-spacing: -.01em;
+}
+.pager-label span {
+  display: block; margin-top: 3px;
+  font-size: .58rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dots { display: flex; gap: 2px; }
+.dot {
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  width: 22px; height: 14px; position: relative;
+}
+.dot::before {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 8px; height: 4px; margin: -2px 0 0 -4px;
+  background: var(--line-2);
+}
+.dot.on::before { background: var(--beige); }
+
+/* ---------------- desenfoque al cambiar ---------------- */
+.fx-out { animation: fx-out .13s ease-in both; will-change: filter, opacity; }
+.fx-in  { animation: fx-in .34s cubic-bezier(.2,.8,.2,1) both; will-change: filter, opacity; }
+
+@keyframes fx-out {
+  from { filter: blur(0);    opacity: 1; }
+  to   { filter: blur(10px); opacity: .2; }
+}
+@keyframes fx-in {
+  from { filter: blur(10px); opacity: 0; }
+  to   { filter: blur(0);    opacity: 1; }
+}
+
+/* ----------------------------------------------------------------
+   el selector: tipografía sobre cristal, sin una sola caja.
+   La opción elegida va en el color de su pieza del título y con el
+   mismo subrayado; las demás, en gris apagado.
+   ---------------------------------------------------------------- */
+.sheet-wrap { position: fixed; inset: 0; z-index: 40; display: flex; }
+.sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(5, 5, 4, .74);
+  backdrop-filter: blur(26px) saturate(.8);
+  -webkit-backdrop-filter: blur(26px) saturate(.8);
+  animation: fade-in .2s ease both;
+}
+.sheet {
+  position: relative; margin: auto; width: 100%; max-width: 480px;
+  max-height: 100%; overflow-y: auto; scrollbar-width: none;
+  padding: max(36px, env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom));
+  text-align: center;
+  animation: sheet-in .3s cubic-bezier(.2,.8,.2,1) both;
+}
+.sheet::-webkit-scrollbar { display: none; }
+.sheet-wrap.closing .sheet { animation: sheet-out .18s ease both; }
+.sheet-wrap.closing .sheet-backdrop { animation: fade-out .18s ease both; }
+
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes sheet-in {
+  from { opacity: 0; filter: blur(12px); transform: scale(.97); }
+  to   { opacity: 1; filter: blur(0);   transform: none; }
+}
+@keyframes sheet-out { to { opacity: 0; filter: blur(10px); } }
+
+.opt-grid { display: grid; }
+.opt-grid.roots { grid-template-columns: repeat(3, 1fr); gap: 18px 8px; }
+.opt-grid.exts { grid-template-columns: repeat(3, 1fr); gap: 16px 8px; }
+
+.opt {
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 4px 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  color: var(--dim);
+  font-family: var(--sans); font-weight: 900;
+  animation: opt-in .32s cubic-bezier(.2,.8,.2,1) both;
+  animation-delay: calc(var(--i, 0) * 14ms);
+}
+.opt .opt-big { font-size: 2rem; line-height: 1.05; letter-spacing: -.03em; }
+.opt-grid.exts .opt-big { font-size: 1.4rem; }
+.opt.ghost .opt-big { opacity: .55; }
+
+.opt[aria-pressed="true"] { color: var(--text); }
+.opt[aria-pressed="true"] .opt-big {
+  text-decoration-line: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 7px;
+}
+.sheet[data-kind="ext"] .opt[aria-pressed="true"] { color: var(--beige); }
+.opt:active .opt-big { color: var(--text); }
+
+@keyframes opt-in {
+  from { opacity: 0; filter: blur(7px); transform: translateY(8px); }
+  to   { opacity: 1; filter: blur(0);  transform: none; }
+}
+
+/* ---------------- móvil en horizontal ---------------- */
+@media (max-height: 480px) {
+  :root { --top-h: 96px; --bot-h: 84px; }
+  .chord-name { font-size: 2.6rem; }
+  .chord-line { display: none; }
+  .pinned-top .pinned-inner { padding: calc(12px + env(safe-area-inset-top)) var(--pad) 10px; }
+  .chev { height: 36px; }
+  .opt { height: 46px; }
+  .kb-head { font-size: .52rem; }
+}
+
+/* ---------------- pantallas anchas ---------------- */
+@media (min-width: 760px) {
+  .panel-inner { max-width: 640px; margin: 0 auto; }
+  .sheet { max-width: 640px; margin: 0 auto; }
+}
+
+.boot-error {
+  height: 100%; display: flex; flex-direction: column; justify-content: center;
+  align-items: center; gap: 12px; text-align: center; padding: 0 26px;
+}
+.boot-error b {
+  font-size: .72rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--beige);
+}
+.boot-error span { font-family: var(--mono); font-size: .78rem; color: var(--muted); }
+.boot-error em { font-style: normal; font-size: .82rem; color: var(--dim); max-width: 340px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
