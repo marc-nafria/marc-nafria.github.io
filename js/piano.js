@@ -190,8 +190,12 @@
     function addKey(midi, x, w, h, white) {
       var mk = markOf(midi);
       var group = el('g', { 'data-midi': midi, class: 'pk' });
+      /* una marca fantasma (mk.ghost) encara no sona: tecla en repos i
+         bombolla buida, a l'espera que l'arpegi hi arribi */
+      var ghost = !!(mk && mk.ghost);
+      var solid = !!(mk && !ghost);
       /* la tecla marcada baixa un pel, com si estigues polsada */
-      if (mk) { group.setAttribute('transform', 'translate(0 2.5)'); }
+      if (solid) { group.setAttribute('transform', 'translate(0 2.5)'); }
 
       /* la negra marcada es tenyeix sencera del color del rol, amb una
          bona vora negra perque no es fongui amb les blanques. El mode
@@ -201,14 +205,29 @@
       var role = mk ? (ROLE[mk.role] || ROLE.chord) : null;
       var rect = el('rect', {
         x: x, y: PAD, width: w, height: h, rx: 1.5,
-        fill: white ? (mk ? '#F7F4EF' : (live ? '#C7C0B2' : '#8E887F'))
-                    : (mk ? role.fill : (live ? '#171614' : '#0F0E0D')),
-        stroke: white ? '#0A0A0A' : (mk ? '#060605' : '#4A463F'),
-        'stroke-width': white ? 1.4 : (mk ? 2.4 : 1.8)
+        fill: white ? (solid ? '#F7F4EF' : (live ? '#C7C0B2' : '#8E887F'))
+                    : (solid ? role.fill : (live ? '#171614' : '#0F0E0D')),
+        stroke: white ? '#0A0A0A' : (solid ? '#060605' : '#4A463F'),
+        'stroke-width': white ? 1.4 : (solid ? 2.4 : 1.8)
       });
       group.appendChild(rect);
 
-      if (mk) {
+      /* el front de la tecla, un detall pla que la fa de debo */
+      if (live) {
+        group.appendChild(el('rect', {
+          x: x + 0.75, y: PAD + h - (white ? 7 : 5.5),
+          width: w - 1.5, height: white ? 6 : 4.5, rx: 1,
+          fill: white ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.07)'
+        }));
+      }
+
+      if (ghost) {
+        var gcy = white ? PAD + h - 25 : PAD + h - 17;
+        group.appendChild(el('circle', {
+          cx: x + w / 2, cy: gcy, r: white ? 13 : 9,
+          fill: 'none', stroke: role.fill, 'stroke-width': 1.5, opacity: 0.5
+        }));
+      } else if (mk) {
         var cy = white ? PAD + h - 25 : PAD + h - 17;
         if (white) {
           group.appendChild(el('circle', {
@@ -235,7 +254,7 @@
            van delegats a l'svg sencer (mes robust que 150 listeners) */
         group.setAttribute('cursor', 'pointer');
         keyRefs[midi] = {
-          rect: rect, black: !white,
+          rect: rect, key: group, black: !white,
           baseFill: rect.getAttribute('fill'),
           baseStroke: rect.getAttribute('stroke'),
           baseStrokeW: rect.getAttribute('stroke-width')
@@ -290,6 +309,15 @@
     svg.appendChild(whiteLayer);
     svg.appendChild(blackLayer);
     svg.appendChild(footLayer);
+
+    if (o.keyHandlers) {
+      /* el feltre de darrere les tecles, com als pianos de debo; la
+         tecla polsada s'enfonsa i llisca per sota */
+      svg.appendChild(el('rect', {
+        x: 0, y: PAD - 0.6, width: width, height: 4.2,
+        fill: '#B08B3C', opacity: 0.9
+      }));
+    }
 
     if (o.keyHandlers) {
       /* un sol joc de gestors per a tot el teclat, amb seguiment per

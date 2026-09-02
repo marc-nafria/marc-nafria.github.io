@@ -481,7 +481,7 @@
       refs.rect.setAttribute('stroke', on ? '#060605' : refs.baseStroke);
       refs.rect.setAttribute('stroke-width', on ? 2.4 : refs.baseStrokeW);
     }
-    refs.rect.setAttribute('transform', on ? 'translate(0 2)' : '');
+    (refs.key || refs.rect).setAttribute('transform', on ? 'translate(0 2)' : '');
   }
 
   function closeFreePiano() {

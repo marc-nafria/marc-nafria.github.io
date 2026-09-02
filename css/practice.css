@@ -137,6 +137,32 @@ button {
   display: flex; flex-direction: column; justify-content: center; gap: 8px;
 }
 .wheel-host { flex: none; padding-top: 14px; }
+
+/* entrar l'acord: un fil entre els dos pianos. Arrossega i tu
+   decideixes quan entra cada nota; enrere, surten. Continu i
+   dissimulat: res no crida fins que el fas servir. */
+.arp-host { flex: none; display: flex; justify-content: center; }
+.arp { width: 100%; display: flex; justify-content: center; }
+.arp-track {
+  position: relative;
+  width: min(250px, 68%); height: 34px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.arp-track::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+  background: var(--line);
+}
+.arp-fill {
+  position: absolute; left: 0; top: 50%; height: 2px; margin-top: -0.5px;
+  width: 0; background: var(--beige);
+}
+.arp-thumb {
+  position: absolute; left: 0; top: 50%;
+  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%; background: var(--muted);
+}
+.arp-track:active .arp-thumb { background: var(--beige); }
 .panel-inner > * { position: relative; z-index: 1; }
 
 /* ---------------- capas fijas ---------------- */
@@ -276,7 +302,7 @@ button {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   color: var(--text);
   transform-origin: 50% 24%;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
 }
 .wh-item b {
   font-family: var(--mono); font-size: 1.2rem; font-weight: var(--w-caps);
@@ -540,11 +566,15 @@ button {
   /* tot l'ample de pantalla */
   .panel-inner { max-width: none; }
 
-  /* les dues mans, costat a costat: l'esquerra a l'esquerra */
-  .panel[data-ins="piano"] .panel-inner {
-    flex-direction: row; align-items: center; gap: 16px;
+  /* les dues mans, costat a costat: l'esquerra a l'esquerra,
+     i el fil d'entrar l'acord a sota, d'ample sencer */
+  .panel[data-ins="piano"] .stage {
+    flex-direction: row; flex-wrap: wrap; align-items: center;
+    gap: 10px 16px;
   }
-  .panel[data-ins="piano"] .kb { flex: 1 1 50%; min-width: 0; }
+  .panel[data-ins="piano"] .kb-slot { flex: 1 1 42%; min-width: 0; }
+  .panel[data-ins="piano"] .arp-host { order: 3; flex: 1 1 100%; }
+  .panel[data-ins="piano"] .kb { min-width: 0; }
 
   /* el mastil ajagut pot ser ben ample */
   .panel[data-ins="guitar"] .diagram.narrow { max-width: min(620px, 88vw); }

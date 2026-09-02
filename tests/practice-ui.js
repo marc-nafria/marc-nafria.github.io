@@ -25,6 +25,7 @@ class Node {
     this._text = ''; this.parentNode = null; this.disabled = false;
     this.scrollTop = 0; this.scrollLeft = 0;
   }
+  getBoundingClientRect() { return { left: 0, top: 0, width: 260, height: 40 }; }
   get classList() {
     if (!this._cl) {
       this._cl = new ClassList(this);
@@ -195,7 +196,12 @@ guard('estructura', () => {
     const inner = panel.querySelectorAll('.panel-inner')[0];
     const order = inner.children.map(c => c.attrs.class);
     ok(order.join('|') === 'stage|wheel-host',
-      'amb la roda just sota l’instrument: ' + order.join('|'));
+      'amb la roda sota l’instrument: ' + order.join('|'));
+    if (ins === 'piano') {
+      const slots = panel.querySelectorAll('.stage')[0].children.map(c => c.attrs.class);
+      ok(slots.join('|') === 'kb-slot|arp-host|kb-slot',
+        'l’slider viu entre els dos pianos: ' + slots.join('|'));
+    }
   });
 });
 
@@ -555,9 +561,9 @@ guard('pianet lliure', () => {
   const refs = svg.keyRefs['48'];
   svg.dispatch('pointerdown', { target: refs.rect, clientX: 100, clientY: 100, pointerId: 1 });
   ok(refs.rect.attrs.fill === '#FFFFFF', 'la tecla polsada s’encén en blanc');
-  ok(refs.rect.attrs.transform === 'translate(0 2)', 'i s’enfonsa un pèl');
+  ok(refs.key.attrs.transform === 'translate(0 2)', 'i s’enfonsa un pèl');
   svg.dispatch('pointerup', { pointerId: 1 });
-  ok(refs.rect.attrs.fill === refs.baseFill && refs.rect.attrs.transform === '',
+  ok(refs.rect.attrs.fill === refs.baseFill && refs.key.attrs.transform === '',
     'i s’apaga en deixar-la anar');
   ok(refs.baseFill === '#C7C0B2', 'les blanques del pianet: os càlid, ni ivori ni gris fosc');
 
@@ -565,7 +571,7 @@ guard('pianet lliure', () => {
   svg.dispatch('pointerdown', { target: refs.rect, clientX: 100, clientY: 100, pointerId: 2 });
   svg.dispatch('pointermove', { clientX: 100, clientY: 145, pointerId: 2 });
   svg.dispatch('pointerup', { pointerId: 2 });
-  ok(refs.rect.attrs.fill === '#FFFFFF' && refs.rect.attrs.transform === 'translate(0 2)',
+  ok(refs.rect.attrs.fill === '#FFFFFF' && refs.key.attrs.transform === 'translate(0 2)',
     'lliscar cap avall deixa la nota fixada, blanca i enfonsada');
 
   // i cap amunt la deixa anar
@@ -690,6 +696,79 @@ guard('aparença: clar, fosc i tres lletres', () => {
   ok(document.documentElement.getAttribute('data-theme') === null, 'que torna al negre');
 });
 
+guard('l’slider d’entrar l’acord', () => {
+  state.rootPc = 0; state.quality = 'maj'; state.ins = 'piano'; state.posP = 0;
+  repaint();
+  const panel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano');
+  const track = panel.querySelectorAll('.arp-track')[0];
+  ok(!!track, 'l’slider hi és, sota els teclats');
+  const total = Number(track.attrs['aria-valuemax']);
+  ok(total >= 4, 'una fracció per nota de l’acord: ' + total);
+  ok(track.querySelectorAll('.arp-tick').length === 0, 'sense tics: continu i dissimulat');
+
+  // arrossegar fins a mig camí: sonen les primeres, la resta en fantasma
+  const mid = Math.round(total / 2);
+  track.dispatch('pointerdown', { clientX: 260 * (mid + 0.4) / total, pointerId: 1 });
+  ok(track.attrs['aria-valuenow'] === String(mid), 'a mig camí: ' + track.attrs['aria-valuenow']);
+  ok(/%/.test(track.querySelectorAll('.arp-fill')[0].style.width),
+    'la barra segueix el dit, contínua: ' + track.querySelectorAll('.arp-fill')[0].style.width);
+  let hollow = panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none');
+  ok(hollow.length > 0, 'les que falten esperen en fantasma: ' + hollow.length);
+
+  // fins al final: totes dins; deixar anar no apaga res
+  track.dispatch('pointermove', { clientX: 260, pointerId: 1 });
+  track.dispatch('pointerup', { pointerId: 1 });
+  ok(track.attrs['aria-valuenow'] === String(total), 'al final hi són totes');
+  hollow = panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none');
+  ok(hollow.length === 0, 'cap fantasma: l’acord sencer sona i es queda');
+
+  // enrere fins a zero: tot torna al repòs
+  track.dispatch('pointerdown', { clientX: 260, pointerId: 2 });
+  track.dispatch('pointermove', { clientX: 0, pointerId: 2 });
+  track.dispatch('pointerup', { pointerId: 2 });
+  ok(track.attrs['aria-valuenow'] === '0', 'enrere les treu en ordre invers');
+  ok(panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none').length === 0,
+    'i les marques tornen a ser les de sempre');
+
+  // canviar de pla atura el que sonés
+  track.dispatch('pointerdown', { clientX: 260, pointerId: 3 });
+  track.dispatch('pointerup', { pointerId: 3 });
+  window.Practice.goTo('metronome');
+  window.Practice.goTo('piano');
+  ok(panel.querySelectorAll('.arp-track')[0].attrs['aria-valuenow'] === '0',
+    'canviar de pla ho fa callar tot');
+});
+
+guard('les marques fantasma del piano', () => {
+  const svg = window.Piano.render({
+    from: 60, keys: 8, labels: 'none', footLabels: 'none', playable: false,
+    midiMarks: [
+      { midi: 60, label: '1', role: 'root', ghost: true },
+      { midi: 64, label: '3', role: 'chord' }
+    ]
+  });
+  const g60 = svg.querySelectorAll('g').find(g => g.attrs['data-midi'] === '60');
+  const g64 = svg.querySelectorAll('g').find(g => g.attrs['data-midi'] === '64');
+  ok(!g60.attrs.transform, 'la fantasma no s’enfonsa');
+  ok(g64.attrs.transform === 'translate(0 2.5)', 'la sòlida sí');
+  const ring = g60.children.find(c => c.tagName === 'circle');
+  ok(!!ring && ring.attrs.fill === 'none' && ring.attrs.stroke === '#DCC9A6',
+    'la bombolla fantasma és un anell buit del color del rol');
+  ok(!g60.children.some(c => c.tagName === 'text'), 'i sense número, que encara no toca');
+});
+
+guard('el pianet vesteix', () => {
+  app.querySelectorAll('.piano-btn')[0].dispatch('click');
+  const wrap = document.body.querySelectorAll('.fp-wrap')[0];
+  const svg = wrap.querySelectorAll('svg')[0];
+  const felt = svg.children.find(c => c.tagName === 'rect' && c.attrs.fill === '#B08B3C');
+  ok(!!felt && Number(felt.attrs.opacity) > 0.8, 'el feltre daurat corre per sobre les tecles');
+  const g = svg.querySelectorAll('g').find(x => x.attrs['data-midi'] === '48');
+  ok(g.children.some(c => c.tagName === 'rect' && c.attrs.fill === 'rgba(0,0,0,.14)'),
+    'cada blanca té el seu front');
+  wrap.querySelectorAll('.fp-close')[0].dispatch('click');
+});
+
 guard('les tecles marcades semblen polsades', () => {
   const kb = app.querySelectorAll('.kb')[0];
   const svg = kb.querySelectorAll('svg')[0];
@@ -705,10 +784,10 @@ guard('la roda: el nom de dalt no parpelleja i aquí baix no hi ha blur', () => 
   ok(items.length > 1, 'hi ha més d’una inversió per provar: ' + items.length);
   ok(items[0].classList.contains('on') && !items[1].classList.contains('on'),
     'la del mig es llegeix neta i les altres no');
-  ok(items[0].style.filter === 'none' && /blur/.test(items[1].style.filter),
-    'les del costat es desdibuixen: ' + items[1].style.filter);
+  ok(items[1].style.filter === undefined && items[0].style.filter === undefined,
+    'sense cap blur a la roda');
   ok(Number(items[1].style.opacity) < 1 && /scale/.test(items[1].style.transform),
-    'i es fan petites i s’aparten');
+    'les del costat es fan petites i tènues');
   items[1].dispatch('click');
   ok(activePanel.querySelectorAll('.wh-item')[1].getAttribute('aria-selected') === 'true',
     'tocar-ne una la porta al centre');
@@ -720,8 +799,7 @@ guard('la roda: el nom de dalt no parpelleja i aquí baix no hi ha blur', () => 
     k.classList.contains('fx-in') || k.classList.contains('fx-out')).length;
   ok(topKids.length > 0 && blurredTop === 0,
     'el nom de l’acord queda quiet: ' + blurredTop + ' fills amb fx');
-  const stageKids = activePanel.querySelectorAll('.stage')[0].children;
-  ok(stageKids.some(k => k.classList.contains('fx-in')),
+  ok(activePanel.querySelectorAll('.fx-in').length > 0,
     'els diagrames sí que fan la transició');
 });
 

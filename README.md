@@ -160,6 +160,16 @@ node tests/theory-shapes.js   # teoría + data/chords.json: ~4000 comprobaciones
 node tests/practice-ui.js     # la pantalla y las manos de piano: ~18000 comprobaciones
 ```
 
+## Entrar l'acord
+
+Al pla del piano, un **fil dissimulat entre els dos teclats**. Arrossega'l i
+**tu decideixes quan entra cada nota** (de la més greu a la més aguda, les
+dues mans) — so de pad que es queda sonant —, i enrere surten en ordre invers.
+És continu: la barra segueix el dit i cada nota entra en creuar la seva
+fracció del recorregut. En deixar anar, el que sona es queda. Les notes que
+falten esperen com a **anells fantasma** i es marquen de ple quan entren.
+Canviar d'acord, d'inversió o de pla ho fa callar tot.
+
 ## La roda d'inversions
 
 Les inversions (piano) i les posicions (guitarra) no van en fletxes ni en

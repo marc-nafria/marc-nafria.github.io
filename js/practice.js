@@ -334,6 +334,8 @@
       return {
         midi: m, label: String(fingers[i]),
         flats: deg ? deg.charAt(0) === 'b' : flats,
+        /* mentre l'slider mana, el que encara no sona va de fantasma */
+        ghost: !!(arp && !arp.played[m]),
         role: Theory.mod12(m) === Theory.mod12(state.rootPc) ? 'root' : 'chord'
       };
     });
@@ -361,13 +363,119 @@
     return h('div', { class: 'kb' }, hand === 'L' ? [head, diagram] : [diagram, head]);
   }
 
-  function pianoContent() {
+  /* ----------------------------------------------------------------
+     Entrar l'acord amb un slider: arrossegues i tu decideixes quan
+     entra cada nota (de la mes greu cap amunt, so de pad que es queda
+     sonant); enrere, les notes surten en ordre invers. En deixar anar,
+     el que sona es queda fins que ho tornis a moure o canviis res.
+     ---------------------------------------------------------------- */
+  var arp = null;     /* { notes, level, voices, played } mentre en sona alguna */
+  var arpUI = null;   /* { track, bar, thumb } de l'slider viu */
+
+  function arpNotes() {
+    var total = voicings(RH_BASE).length;
+    var rh = rhVoicing(Math.min(state.posP, total - 1));
+    var lh = lhVoicing(rh[0]);
+    var all = lh.concat(rh).sort(function (a, b) { return a - b; });
+    return all.filter(function (m, i) { return i === 0 || m !== all[i - 1]; });
+  }
+
+  function paintPiano(fx) {
     var total = voicings(RH_BASE).length;
     if (state.posP >= total) { state.posP = 0; }
     var rh = rhVoicing(state.posP);
     var lh = lhVoicing(rh[0]);
-    // izquierda arriba, derecha abajo
-    return [keyboard(lh, 'L'), keyboard(rh, 'R')];
+    // izquierda arriba, derecha abajo, con el slider entremedio
+    fill(shell.panels.piano.kbL, [keyboard(lh, 'L')], fx);
+    fill(shell.panels.piano.kbR, [keyboard(rh, 'R')], fx);
+  }
+
+  function arpPaintUI(frac, level) {
+    if (!arpUI) { return; }
+    var pct = (frac * 100).toFixed(2) + '%';
+    arpUI.bar.style.width = pct;
+    arpUI.thumb.style.left = pct;
+    arpUI.track.setAttribute('aria-valuenow', level);
+  }
+
+  function stopArp(skipPaint) {
+    if (!arp) { return; }
+    Object.keys(arp.voices).forEach(function (m) { arp.voices[m].release(); });
+    arp = null;
+    arpPaintUI(0, 0);
+    if (!skipPaint) { paintPiano(); }
+  }
+
+  /* el nivell k = quantes notes sonen; pujar n'enceta, baixar n'apaga */
+  function arpSetLevel(k) {
+    if (!arp) {
+      if (k <= 0) { return; }
+      Sound.ready();
+      arp = { notes: arpNotes(), level: 0, voices: {}, played: {} };
+    }
+    k = Math.max(0, Math.min(arp.notes.length, k));
+    if (k === arp.level) { return; }
+    while (arp.level < k) {
+      var m = arp.notes[arp.level];
+      arp.voices[m] = Sound.padOn(m);
+      arp.played[m] = true;
+      arp.level += 1;
+    }
+    while (arp.level > k) {
+      arp.level -= 1;
+      var m2 = arp.notes[arp.level];
+      if (arp.voices[m2]) { arp.voices[m2].release(); delete arp.voices[m2]; }
+      delete arp.played[m2];
+    }
+    if (arp.level === 0) { arp = null; }
+    paintPiano();
+  }
+
+  function arpSlider() {
+    var total = arpNotes().length;
+    var bar = h('i', { class: 'arp-fill' });
+    var thumb = h('b', { class: 'arp-thumb' });
+    var track = h('div', {
+      class: 'arp-track', role: 'slider', tabindex: '0',
+      'aria-label': 'Entrar l\u2019acord nota a nota',
+      'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': '0'
+    }, [bar, thumb]);
+
+    /* continu: la barra segueix el dit tal qual, i cada nota entra en
+       creuar la seva fraccio del recorregut */
+    function moveTo(ev) {
+      if (!track.getBoundingClientRect) { return; }
+      var r = track.getBoundingClientRect();
+      if (!r.width) { return; }
+      var frac = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+      var level = Math.floor(frac * total + 0.0001);
+      arpPaintUI(frac, level);
+      arpSetLevel(level);
+    }
+
+    track.addEventListener('pointerdown', function (ev) {
+      if (ev.preventDefault) { ev.preventDefault(); }
+      moveTo(ev);
+      function move(e) {
+        moveTo(e);
+      }
+      function up() {
+        track.removeEventListener('pointermove', move);
+        track.removeEventListener('pointerup', up);
+        track.removeEventListener('pointercancel', up);
+      }
+      track.addEventListener('pointermove', move);
+      track.addEventListener('pointerup', up);
+      track.addEventListener('pointercancel', up);
+      try {
+        if (track.setPointerCapture && ev.pointerId !== undefined) {
+          track.setPointerCapture(ev.pointerId);
+        }
+      } catch (e) { /* la captura es un extra */ }
+    });
+
+    arpUI = { track: track, bar: bar, thumb: thumb };
+    return h('div', { class: 'arp' }, [track]);
   }
 
   /* ---------------- contenido: guitarra ---------------- */
@@ -452,11 +560,11 @@
     for (var i = 0; i < kids.length; i++) {
       var d = Math.abs(i - at);
       var near = Math.min(d, 1.8);
-      /* radi tancat: cauen de pressa i s'enfonsen, com una roda que gira */
+      /* radi tancat: cauen de pressa i s'enfonsen, com una roda que gira.
+         Res de blur: nomes opacitat i mida. */
       kids[i].style.transform = 'translateY(' + (near * 4.5).toFixed(1) + 'px) '
         + 'scale(' + (1 - 0.36 * near).toFixed(3) + ')';
       kids[i].style.opacity = (1 - 0.74 * Math.min(d, 1)).toFixed(3);
-      kids[i].style.filter = d < 0.08 ? 'none' : 'blur(' + (Math.min(d, 1.4) * 2.9).toFixed(2) + 'px)';
       kids[i].classList.toggle('on', d < 0.5);
     }
   }
@@ -700,6 +808,7 @@
      aixi que no te sentit desenfocar-lo. */
   function change(mutate, o) {
     var keep = o || {};
+    stopArp(true);   /* el que sonava ja no es el que es veura */
     if (busy || reducedMotion()) {
       mutate();
       render(true, keep);
@@ -707,7 +816,10 @@
     }
     busy = true;
     blurOut(shell.panels.guitar.inner);
-    blurOut(shell.panels.piano.inner);
+    /* al piano, els nius son fixos: es desenfoquen els teclats de dins,
+       no els nius (que la classe s'hi quedaria per sempre) */
+    blurOut(shell.panels.piano.kbL);
+    blurOut(shell.panels.piano.kbR);
     if (!keep.keepTitle) { blurOut(shell.topInner); }
     /* la roda de baix no es desdibuixa mai: ja te la seva propia
        manera de dir que hi ha, i el blur alla no s'entenia */
@@ -728,6 +840,7 @@
     if (id === activeId) { return; }
     var prev = activeId;
     activeId = id;
+    stopArp();
     if (prev === 'tuner' && toolHandles.tuner) { toolHandles.tuner.leave(); }
     if (id === 'tuner' && toolHandles.tuner) { toolHandles.tuner.enter(); }
     shell.root.classList.toggle('on-tool', !INSTRUMENTS[id]);
@@ -786,6 +899,17 @@
         var inner = h('div', { class: 'panel-inner' }, [stage, wheelHost]);
         deck.appendChild(h('div', { class: 'panel', 'data-ins': p }, [inner]));
         panels[p] = { inner: stage, wheelHost: wheelHost };
+        if (p === 'piano') {
+          /* nius fixos: teclat esquerre, slider entremig, teclat dret.
+             Aixi cada nota repinta els teclats sense matar l'slider
+             que tens sota el dit. */
+          panels.piano.kbL = h('div', { class: 'kb-slot' });
+          panels.piano.arpHost = h('div', { class: 'arp-host' });
+          panels.piano.kbR = h('div', { class: 'kb-slot' });
+          stage.appendChild(panels.piano.kbL);
+          stage.appendChild(panels.piano.arpHost);
+          stage.appendChild(panels.piano.kbR);
+        }
       } else {
         deck.appendChild(h('div', { class: 'panel panel-tool', 'data-ins': p },
           toolHandles[p] ? [toolHandles[p].el] : []));
@@ -805,8 +929,10 @@
   function render(fx, o) {
     var keep = o || {};
     fill(shell.panels.guitar.inner, guitarContent(), fx);
-    fill(shell.panels.piano.inner, pianoContent(), fx);
+    paintPiano(fx);
     fill(shell.topInner, titleContent(), fx && !keep.keepTitle);
+
+    fill(shell.panels.piano.arpHost, [arpSlider()]);
 
     Object.keys(INSTRUMENTS).forEach(function (ins) {
       var host = shell.panels[ins].wheelHost;
