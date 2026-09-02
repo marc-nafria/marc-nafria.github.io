@@ -5,7 +5,7 @@
    d'aquí i el ?v=N d'index.html. La V mana sobre la memòria cau:
    canviar-la fa baixar-ho tot de nou i escombra les caus velles.
    ============================================================ */
-var V = '66';
+var V = '67';
 var CORE = 'acords-v' + V;
 var FONTS = 'acords-fonts';
 

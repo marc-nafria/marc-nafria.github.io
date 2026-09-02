@@ -118,7 +118,7 @@
   var modeId = '5';   /* un sol mode: cinc notes */
   var puzzle = null;
   var state = null;        /* { found: [pc], misses, log: [], done, win } */
-  var refs = {};
+  var kbMaps = [];   /* un mapa de tecles per cada fila del teclat */
   var voices = [];
   var earTimer = null;
   var lastMisses = 0;
@@ -140,6 +140,14 @@
       : { sel: '#DCC9A6', ok: '#93B478', bad: '#A65B4B' };
   }
 
+  /* pinta la tecla a TOTES les seves instancies (la frontera de les
+     dues files es la mateixa nota a totes dues) */
+  function paintMidi(midi, color) {
+    kbMaps.forEach(function (m) {
+      if (m[midi]) { paintKey(m[midi], color); }
+    });
+  }
+
   function paintKey(rf, color) {
     if (!rf) { return; }
     rf.rect.setAttribute('fill', color || rf.baseFill);
@@ -156,18 +164,19 @@
     voices = [];
   }
 
-  function hear() {
+  function hear(ms) {
     if (!puzzle) { return; }
+    var dur = ms || 3200;
     Sound.ready();
     if (!voices.length) {
       puzzle.midis.forEach(function (m) { voices.push(Sound.padOn(m)); });
     }
     if (earTimer && global.clearTimeout) { global.clearTimeout(earTimer); }
-    earTimer = global.setTimeout(stopChord, 3200);
+    earTimer = global.setTimeout(stopChord, dur);
     els.earFill.style.transition = 'none';
     els.earFill.style.height = '100%';
     void els.ear.offsetWidth;
-    els.earFill.style.transition = 'height 3200ms linear';
+    els.earFill.style.transition = 'height ' + dur + 'ms linear';
     els.earFill.style.height = '0%';
   }
 
@@ -192,11 +201,14 @@
   }
 
   function loadState() {
+    var st = null;
     var raw = store('estat3.' + keyOf());
     if (raw) {
-      try { return JSON.parse(raw); } catch (e) { /* corrupte: de nou */ }
+      try { st = JSON.parse(raw); } catch (e) { /* corrupte: de nou */ }
     }
-    return { found: [], misses: 0, done: false };
+    if (!st) { st = { found: [], misses: 0, wrong: [], done: false }; }
+    if (!st.wrong) { st.wrong = []; }
+    return st;
   }
 
   function saveState() {
@@ -224,12 +236,17 @@
   /* ---------------- pintar ---------------- */
   function paintAll() {
     var c = cols();
-    Object.keys(refs).forEach(function (m) {
+    var seen = {};
+    kbMaps.forEach(function (map) {
+      Object.keys(map).forEach(function (m) { seen[m] = true; });
+    });
+    Object.keys(seen).forEach(function (m) {
       var midi = Number(m);
       var color = null;
-      if (state.found.indexOf(midi) !== -1) { color = c.ok; }
+      if (state.wrong.indexOf(midi) !== -1) { color = c.bad; }
+      else if (state.found.indexOf(midi) !== -1) { color = c.ok; }
       else if (state.done && puzzle.midis.indexOf(midi) !== -1) { color = c.sel; }
-      paintKey(refs[m], color);
+      paintMidi(midi, color);
     });
 
     els.miss.textContent = String(state.misses);
@@ -267,22 +284,26 @@
     tastNote(midi);
     if (state.done) { return; }
     if (state.found.indexOf(midi) !== -1) { return; }
+    /* una vermella es queda vermella: sona, pero ja no recompta */
+    if (state.wrong.indexOf(midi) !== -1) { return; }
     var c = cols();
     /* nomes val la tecla exacta que sona: l'octava compta */
     if (puzzle.midis.indexOf(midi) !== -1) {
       state.found.push(midi);
-      paintKey(rf, c.ok);
+      paintMidi(midi, c.ok);
       if (state.found.length === puzzle.midis.length) { finish(); return; }
     } else {
       state.misses += 1;
-      paintKey(rf, c.bad);
-      if (rf.key && rf.key.classList) {
+      state.wrong.push(midi);
+      paintMidi(midi, c.bad);
+      if (rf && rf.key && rf.key.classList) {
         rf.key.classList.add('q-shake');
         global.setTimeout(function () { rf.key.classList.remove('q-shake'); }, 240);
       }
-      global.setTimeout(function () {
-        if (!state.done || puzzle.midis.indexOf(midi) === -1) { paintKey(rf, null); }
-      }, 300);
+      /* el correctiu: l'acord sona (o s'allarga) un moment i calla.
+         Sense re-atacar si encara sona: aturar i tornar a engegar de
+         cop apilava veus esvaint-se amb veus noves i s'empastifava. */
+      hear(1500);
     }
     saveState();
     paintAll();
@@ -290,7 +311,7 @@
 
   function buildKb() {
     els.kb.innerHTML = '';
-    refs = {};
+    kbMaps = [];
     /* la finestra s'ancora al voicing: hi cap sencer, sigui quin sigui.
        Al mobil (vertical) el teclat va partit en dues files de vuit
        blanques: tecles de dit, no de cursor. En apaisat, d'una tirada. */
@@ -314,7 +335,7 @@
         keyHandlers: { press: onKey, release: function () {}, move: null },
         labels: 'none', footLabels: 'octaves'
       });
-      Object.keys(svg.keyRefs).forEach(function (k) { refs[k] = svg.keyRefs[k]; });
+      kbMaps.push(svg.keyRefs);
       els.kb.appendChild(svg);
     });
   }
@@ -339,10 +360,8 @@
       name: Theory.pcName(rootPc, { flats: flats }) + type.suffix,
       midis: type.steps.map(function (st) { return 48 + rootPc + st; })
     };
-    state = { found: [], misses: 0, done: false };
+    state = { found: [], misses: 0, wrong: [], done: false };
     lastMisses = 1e9;
-    els.kb.innerHTML = '';
-    refs = {};
     buildKb();
     paintAll();
     hear();

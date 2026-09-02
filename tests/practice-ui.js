@@ -917,6 +917,12 @@ guard('el rètol d’estrena: fins al primer canvi', () => {
   ok(texts(app, '.coach').length === 0, 'i la pista no torna mai més');
 });
 
+guard('el salt al Quinacord', () => {
+  const a = app.querySelectorAll('.quina-btn')[0];
+  ok(!!a && a.attrs.href === 'quinacord/' && a.textContent === '?',
+    'l’anell amb la pregunta porta al joc diari');
+});
+
 guard('les tecles marcades semblen polsades', () => {
   const kb = app.querySelectorAll('.kb')[0];
   const svg = kb.querySelectorAll('svg')[0];

@@ -681,6 +681,11 @@
       onclick: function () { if (global.Tools) { global.Tools.openFreePiano(); } }
     });
 
+    var quinaBtn = h('a', {
+      class: 'quina-btn', href: 'quinacord/',
+      'aria-label': 'Quinacord: el joc diari'
+    }, [h('i', { text: '?' })]);
+
     var trainBtn = h('button', {
       class: 'train-btn', type: 'button',
       'aria-label': 'Pr\u00e0ctica d\u2019o\u00efda',
@@ -695,6 +700,7 @@
     }, [h('i'), h('i'), h('i')]);
 
     return [
+      quinaBtn,
       trainBtn,
       lookBtn,
       pianoBtn,

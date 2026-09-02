@@ -203,6 +203,23 @@ button {
   text-align: center;
 }
 
+/* el salt al Quinacord: l'anell amb la pregunta */
+.quina-btn {
+  position: absolute; top: calc(20px + env(safe-area-inset-top)); left: 12px;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+}
+.quina-btn i {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--dim);
+  display: flex; align-items: center; justify-content: center;
+  font-style: normal;
+  font-family: var(--mono); font-size: .82rem; font-weight: 700;
+  color: var(--beige);
+}
+.quina-btn:active i { border-color: var(--beige); }
+
 /* practica d'oida: un anell amb el punt al mig */
 .train-btn {
   position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 104px;
@@ -771,6 +788,7 @@ button {
   .piano-btn { top: calc(10px + env(safe-area-inset-top)); }
   .look-btn { top: calc(10px + env(safe-area-inset-top)); }
   .train-btn { top: calc(10px + env(safe-area-inset-top)); }
+  .quina-btn { top: calc(10px + env(safe-area-inset-top)); }
   .kb-head { font-size: .52rem; }
 
   /* tot l'ample de pantalla */
