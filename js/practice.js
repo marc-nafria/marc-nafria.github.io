@@ -71,7 +71,7 @@
 
   /* La marca de l'app: tres blanques, dues negres i la tecla alçada.
      La mateixa que icon.svg, aquí en una caixa de 24x20. */
-  var PIANO_MARK = '<svg viewBox="0 0 24 20" aria-hidden="true" focusable="false"><path class="k-w" d="M0 0h24v17.5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 17.5z"/><path class="k-on" d="M16 0h8v17.5a2.5 2.5 0 0 1-2.5 2.5H16z"/><path class="k-seam" d="M7.7 13h.6v7h-.6zM15.7 13h.6v7h-.6z"/><path class="k-b" d="M6.3 0h3.4v12.4H6.3zM14.3 0h3.4v12.4h-3.4z"/></svg>';
+  var PIANO_MARK = '<svg viewBox="0 0 24 20" aria-hidden="true" focusable="false"><path class="k-w" d="M-2 0h6.2v16.6a1.4 1.4 0 0 1-1.4 1.4H-2z"/><path class="k-w" d="M4.9 0h6.2v16.6a1.4 1.4 0 0 1-1.4 1.4H6.3a1.4 1.4 0 0 1-1.4-1.4z"/><path class="k-on" d="M11.8 1.6h6.2v16.8a1.4 1.4 0 0 1-1.4 1.4h-3.4a1.4 1.4 0 0 1-1.4-1.4z"/><path class="k-w" d="M18.7 0H24v18h-3.9a1.4 1.4 0 0 1-1.4-1.4z"/><path class="k-b" d="M3.2 0h3.5v10.6H3.2z"/><path class="k-b" d="M16.9 0h3.5v10.6h-3.5z"/></svg>';
 
   /* ---------------- clar o fosc ---------------- */
   /* Es guarda l'eleccio i s'avisa el navegador (la barra de l'iPhone

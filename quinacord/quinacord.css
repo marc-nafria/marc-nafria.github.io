@@ -1,0 +1,193 @@
+/* ============================================================
+   Quinacord — un pla més d'Acords.
+   Mateixa casa: Outfit en negre per al gran, JetBrains Mono per a
+   les xifres, microcaps, el subratllat amb el peu sortint, el fons
+   mat amb gra, llum al centre i vinyeta. Res que l'app no faci.
+   ============================================================ */
+
+:root {
+  --bg:    #060605;
+  --text:  #F4F1EB;
+  --beige: #DCC9A6;
+  --ok:    #93B478;
+  --bad:   #A65B4B;
+  --muted: #948D83;
+  --dim:   #66605A;
+  --line:  #3A3733;
+  --w-big:  900;
+  --w-caps: 800;
+  --sans:  "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:    #F4F1EB;
+    --text:  #141210;
+    --beige: #B08B3C;
+    --ok:    #4F7A3C;
+    --bad:   #9E4A38;
+    --muted: #6E675C;
+    --dim:   #9A9081;
+    --line:  #C7BFAF;
+  }
+  html { background: #F4F1EB !important; }
+}
+
+* { box-sizing: border-box; }
+::selection { background: var(--beige); color: #060605; }
+
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+button { font-family: inherit; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+:focus-visible { outline: 2px solid var(--beige); outline-offset: 2px; }
+
+/* el fons de l'app, exacte: llum principal, contrallum, vinyeta i gra */
+.q {
+  position: relative;
+  height: 100vh; height: 100dvh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(26px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.q::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E") repeat left top / 240px 240px,
+    radial-gradient(115% 62% at 50% 40%, rgba(255, 255, 255, .065), transparent 66%),
+    radial-gradient(85% 48% at 16% 102%, rgba(255, 255, 255, .03), transparent 70%),
+    radial-gradient(135% 105% at 50% 46%, transparent 52%, rgba(0, 0, 0, .5) 100%);
+}
+@media (prefers-color-scheme: light) {
+  .q::before {
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E") repeat left top / 240px 240px,
+      radial-gradient(115% 62% at 50% 40%, rgba(255, 255, 255, .8), transparent 66%),
+      radial-gradient(85% 48% at 16% 102%, rgba(255, 255, 255, .45), transparent 70%),
+      radial-gradient(135% 105% at 50% 46%, transparent 55%, rgba(31, 27, 21, .085) 100%);
+  }
+}
+.q > * { position: relative; z-index: 1; }
+
+/* ---------------- la marca xiuxiueja: enrere + microcaps ---------------- */
+.q-back {
+  position: absolute; top: calc(6px + env(safe-area-inset-top)); left: 4px;
+  width: 64px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); text-decoration: none;
+  font-family: var(--sans); font-size: 2rem; font-weight: 600; line-height: 1;
+}
+.q-back:active { color: var(--beige); }
+
+/* ---------------- l'escenari ---------------- */
+.q-stage {
+  flex: 1 1 auto; min-height: 0;
+  width: 100%; max-width: 520px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+}
+.q-name {
+  min-height: 56px;
+  display: flex; align-items: flex-end;
+  font-size: 3rem; font-weight: var(--w-big); letter-spacing: -.02em; line-height: 1;
+  color: var(--beige);
+}
+.q-name.ok { color: var(--ok); animation: q-pop .32s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes q-pop {
+  from { transform: scale(.92); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* l'unic marcador: les errades. Puja i batega quan falles. */
+.q-fails {
+  min-height: 26px;
+  font-family: var(--mono); font-size: 1.05rem; font-weight: 700;
+  color: var(--dim);
+}
+.q-fails.some { color: var(--muted); }
+.q-fails.bump { animation: q-bump .3s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes q-bump {
+  30% { transform: scale(1.4); color: var(--bad); }
+  100% { transform: scale(1); }
+}
+
+.q-kb { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.q-kb svg { width: 100%; height: auto; display: block; }
+.q-kb svg rect { transition: fill .07s linear, stroke .07s linear; }
+.q-kb svg g[data-midi] { transition: transform .09s ease; }
+.q-kb .q-shake { animation: q-shake .22s ease; }
+@keyframes q-shake {
+  25% { transform: translateX(-2.5px); }
+  75% { transform: translateX(2.5px); }
+}
+
+/* ---------------- la fila de sota: l'orella de la practica ---------------- */
+.q-row { display: flex; align-items: center; gap: 22px; margin-top: 8px; min-height: 46px; }
+.pr-ear {
+  position: relative;
+  appearance: none; cursor: pointer; padding: 0;
+  width: 44px; height: 44px;
+  border: 2px solid var(--beige); border-radius: 50%;
+  background: none; overflow: hidden;
+  color: var(--text);
+}
+.pr-ear i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--beige); }
+.pr-ear span {
+  position: relative;
+  font-family: var(--mono); font-size: 1.2rem; font-weight: 700;
+  mix-blend-mode: difference;
+}
+@media (prefers-color-scheme: light) {
+  .pr-ear span { mix-blend-mode: normal; color: #141210; }
+}
+
+.q-done { display: flex; align-items: center; gap: 14px; }
+.q-done[hidden] { display: none; }
+.q-share {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 10px 16px;
+  background: var(--text); color: var(--bg);
+  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  border-radius: 3px;
+}
+.q-share:active { background: var(--beige); }
+/* seguir jugant: bloc beix, parella del comparteix */
+.q-more {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 10px 16px;
+  background: var(--beige); color: #060605;
+  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  border-radius: 3px;
+}
+.q-more:active { background: var(--text); }
+
+.q-made {
+  position: absolute; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom));
+  font-size: .52rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim); text-decoration: none;
+  border-bottom: 2px solid transparent; padding-bottom: 3px;
+}
+.q-made:active, .q-made:hover { color: var(--beige); border-color: var(--beige); }
+
+/* apaisat */
+@media (max-height: 480px) {
+  .q { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .q-modes { margin-top: 8px; gap: 26px; }
+  .q-modes button { font-size: 1.05rem; padding-bottom: 8px; }
+  .q-stage { gap: 8px; max-width: 640px; }
+  .q-name { min-height: 34px; font-size: 1.9rem; }
+  .q-row { margin-top: 2px; min-height: 38px; }
+  .pr-ear { width: 38px; height: 38px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

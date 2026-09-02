@@ -5,7 +5,7 @@
    d'aquí i el ?v=N d'index.html. La V mana sobre la memòria cau:
    canviar-la fa baixar-ho tot de nou i escombra les caus velles.
    ============================================================ */
-var V = '65';
+var V = '66';
 var CORE = 'acords-v' + V;
 var FONTS = 'acords-fonts';
 
@@ -25,6 +25,9 @@ var ASSETS = [
   'js/practice.js',
   'data/chords.json',
   'icon.svg',
+  'quinacord/index.html',
+  'quinacord/quinacord.css',
+  'quinacord/game.js',
   'icon-512.png',
   'apple-touch-icon.png',
   'manifest.webmanifest'

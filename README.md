@@ -202,6 +202,17 @@ s'esvaeixen). Sense punts: només orella.
 3. **Pinta el grau** — des de la referència, et demanen un grau (3a menor,
    5a justa…) i l'has de pintar. Prova de cantar-la abans.
 
+## Quinacord — el joc diari (`/quinacord`)
+
+Cada dia **sona un acord** (el mateix per a tothom, per mode) i l'has de
+trobar al piano: la fonamental ve donada, cada tecla encertada **es queda en
+verd**, cada errada omple una de les **4 caselles** — i si s'omplen totes,
+es revela i demà més. Tres modes: **3, 5 i 7 notes** (tríades, novenes,
+tretzenes), cadascun amb el seu puzle i la seva **ratxa**. En acabar:
+**comparteix** la graella (🟩🟥, sense espòiler) i el compte enrere fins al
+següent. El puzle és determinista per data local; el nucli té els seus tests
+(`node tests/quinacord.js`).
+
 ## App de debò (PWA)
 
 L'app funciona **100% fora de línia**: un service worker (`sw.js`) guarda tots
