@@ -202,6 +202,18 @@ s'esvaeixen). Sense punts: només orella.
 3. **Pinta el grau** — des de la referència, et demanen un grau (3a menor,
    5a justa…) i l'has de pintar. Prova de cantar-la abans.
 
+## App de debò (PWA)
+
+L'app funciona **100% fora de línia**: un service worker (`sw.js`) guarda tots
+els fitxers i les lletres a la primera visita. A l'iPhone: Safari →
+Compartir → **Afegir a la pantalla d'inici** — s'obre a pantalla completa,
+amb la seva icona, sense navegador. Quan hi ha versió nova, surt un avís
+petit a baix ("versió nova · toca per actualitzar").
+
+**Ritual de publicació**: apuja el `?v=N` d'`index.html` **i** la `V` de
+`sw.js` (dos números, el mateix valor). La pantalla es manté **encesa**
+mentre el tempo sona o l'afinador escolta (Wake Lock).
+
 ## Mode clar i so a l'iPhone
 
 El rètol **clar/fosc** de dalt a l'esquerra canvia la paleta i es recorda. Els

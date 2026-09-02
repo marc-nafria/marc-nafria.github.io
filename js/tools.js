@@ -50,6 +50,42 @@
     try { global.localStorage.setItem('ac.' + key, value); } catch (e) { /* mode privat */ }
   }
 
+  /* ----------------------------------------------------------------
+     Pantalla encesa mentre es practica: el tempo sonant o l'afinador
+     escoltant demanen el wake lock; en parar (o en amagar la pagina)
+     es deixa anar, i en tornar es recupera sol si encara toca.
+     ---------------------------------------------------------------- */
+  var wakeLock = null;
+  var wakeWant = 0;
+
+  function wakeAcquire() {
+    if (!wakeWant || wakeLock) { return; }
+    try {
+      if (global.navigator && global.navigator.wakeLock) {
+        global.navigator.wakeLock.request('screen').then(function (l) {
+          wakeLock = l;
+          l.addEventListener('release', function () { wakeLock = null; });
+        }).catch(function () { /* estalvi d'energia: no passa res */ });
+      }
+    } catch (e) { /* sense wake lock */ }
+  }
+
+  function wakeHold(on) {
+    wakeWant += on ? 1 : -1;
+    if (wakeWant < 0) { wakeWant = 0; }
+    if (wakeWant > 0) { wakeAcquire(); }
+    else if (wakeLock) {
+      try { wakeLock.release(); } catch (e) { /* ja anava sol */ }
+      wakeLock = null;
+    }
+  }
+
+  if (global.document && document.addEventListener) {
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) { wakeAcquire(); }
+    });
+  }
+
   function reducedMotion() {
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
@@ -195,7 +231,7 @@
     }
 
     function stop() {
-      if (stream) { Sound.session('playback'); }
+      if (stream) { Sound.session('playback'); wakeHold(false); }
       if (raf) { global.cancelAnimationFrame(raf); raf = null; }
       if (source) { try { source.disconnect(); } catch (e) { /* res */ } source = null; }
       if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
@@ -230,6 +266,7 @@
         audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false }
       }).then(function (s) {
         stream = s;
+        wakeHold(true);
         source = ctx.createMediaStreamSource(s);
         analyser = ctx.createAnalyser();
         analyser.fftSize = BUF_SIZE;
@@ -334,6 +371,7 @@
     }
 
     function stop() {
+      if (running) { wakeHold(false); }
       running = false;
       if (timer) { global.clearInterval(timer); timer = null; }
       if (raf) { global.cancelAnimationFrame(raf); raf = null; }
@@ -346,6 +384,7 @@
       var ctx = Sound.ready();
       if (!ctx) { return; }
       running = true;
+      wakeHold(true);
       tickIdx = 0;
       nextT = ctx.currentTime + 0.08;
       queue = [];
