@@ -159,3 +159,26 @@ node tests/theory-shapes.js   # teoría + data/chords.json: ~4000 comprobaciones
                               # 464 posiciones de guitarra revisadas físicamente
 node tests/practice-ui.js     # la pantalla y las manos de piano: ~18000 comprobaciones
 ```
+
+## La roda d'inversions
+
+Les inversions (piano) i les posicions (guitarra) no van en fletxes ni en
+punts: cada secció duu la seva **roda** just sota l'instrument, així que és
+seva i hi llisca. La peça del mig es llegeix neta; les del costat es fan
+petites, s'enfonsen i es desdibuixen, com una roda que gira. Es mou
+arrossegant-la, o tocant-ne una del costat. Aquí baix no hi ha animació de
+blur: la roda ja diu ella mateixa on ets.
+
+## Mode clar i so a l'iPhone
+
+El rètol **clar/fosc** de dalt a l'esquerra canvia la paleta i es recorda. Els
+diagrames es tornen a dibuixar amb els colors del mode: paper càlid, tinta
+negra i l'accent en ocre (un beix clar no es llegiria sobre blanc), amb una
+anella fina a les bombolles clares perquè no es perdin sobre tecla clara.
+
+**Si a l'iPhone no se sent res**: el commutador de silenci del costat del
+telèfon emmudeix el Web Audio de tots els navegadors de l'iPhone (tots són
+WebKit per dins). L'app demana la sessió d'àudio `playback` a iOS 16.4+, que
+ho arregla; si el teu iOS és anterior, treu el silenci o puja el volum de
+timbre. L'àudio també es desbloqueja amb el primer toc a la pàgina, sigui on
+sigui, i es reprèn en tornar de segon pla.

@@ -20,12 +20,52 @@
   --dim:   #66605A;
 
   --top-h: 196px;
-  --bot-h: 116px;
   --pad:   14px;
 
   --sans:  "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --w-big:  900;   /* l'acord, la xifra de tempo, la nota de l'afinador */
+  --w-caps: 800;   /* els micro-retols */
+  --tight: -.03em;
+  --wh-w:  102px;  /* l'ample d'una peca de la roda */
   --mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
+
+/* ---------------- les tres lletres ----------------
+   Nomes canvia la familia i el seu pes propi: Fraunces te un 900 de
+   debo i Instrument Serif nomes te una regular, i posar-li negreta
+   sintetica la desmuntaria. */
+:root[data-font="fraunces"] {
+  --sans: "Fraunces", Georgia, "Times New Roman", serif;
+  --w-big: 900; --w-caps: 700; --tight: -.02em;
+}
+:root[data-font="instrument"] {
+  --sans: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --w-big: 400; --w-caps: 400; --tight: -.01em;
+}
+:root[data-font="instrument"] .chord-name,
+:root[data-font="instrument"] .wh-item b,
+:root[data-font="instrument"] .mn-bpm,
+:root[data-font="instrument"] .tuner-note { letter-spacing: var(--tight); }
+:root[data-font="instrument"] .micro,
+:root[data-font="instrument"] .kb-head span,
+:root[data-font="instrument"] .wh-item span { letter-spacing: .2em; }
+
+/* ---------------- mode clar ----------------
+   Els mateixos papers, girats: paper calid, tinta negra i l'accent
+   passa a ocre perque un beix clar no es llegiria sobre blanc. */
+:root[data-theme="light"] {
+  --bg:    #F4F1EB;
+  --plane: #F4F1EB;
+  --line:  #C7BFAF;
+  --text:  #141210;
+  --beige: #B08B3C;
+  --muted: #6E675C;
+  --dim:   #9A9081;
+}
+:root[data-theme="light"] #app::before {
+  background: radial-gradient(120% 66% at 50% 48%, rgba(255, 255, 255, .8), transparent 70%);
+}
+:root[data-theme="light"] .sheet-backdrop { background: rgba(244, 241, 235, .8); }
 
 * { box-sizing: border-box; }
 
@@ -88,8 +128,15 @@ button {
   position: relative;
   height: 100%;
   display: flex; flex-direction: column; justify-content: center; gap: 8px;
-  padding: calc(var(--top-h) + 8px) var(--pad) calc(var(--bot-h) + 8px);
+  padding: calc(var(--top-h) + 8px) var(--pad) calc(38px + env(safe-area-inset-bottom));
 }
+/* l'escenari: els diagrames. La roda va just a sota, dins la seccio,
+   i sense arribar mai a la vora de baix */
+.stage {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+}
+.wheel-host { flex: none; padding-top: 14px; }
 .panel-inner > * { position: relative; z-index: 1; }
 
 /* ---------------- capas fijas ---------------- */
@@ -107,29 +154,41 @@ button {
   text-align: center;
 }
 
+/* aparenca: un cercle mig ple, el senyal de sempre per al contrast */
+.look-btn {
+  position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 58px;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+}
+.look-btn i {
+  width: 17px; height: 17px; border-radius: 50%;
+  border: 2px solid var(--dim);
+  background: linear-gradient(90deg, var(--dim) 0 50%, transparent 50% 100%);
+}
+.look-btn:active i { border-color: var(--beige); background: linear-gradient(90deg, var(--beige) 0 50%, transparent 50% 100%); }
+
 /* la icona del pianet lliure: tres tecles, com la de l'app */
 .piano-btn {
   position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 12px;
   width: 44px; height: 40px;
-  display: flex; align-items: center; justify-content: center; gap: 3px;
+  display: flex; align-items: center; justify-content: center;
   appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
 }
-.piano-btn i { width: 4px; height: 17px; background: var(--dim); }
-.piano-btn i:last-child { background: var(--beige); }
-.piano-btn:active i { background: var(--beige); }
+.piano-btn svg { width: 22px; height: 18.3px; display: block; }
+.piano-btn .k-w { fill: var(--dim); }
+.piano-btn .k-on { fill: var(--beige); }
+.piano-btn .k-b { fill: var(--bg); }
+.piano-btn .k-seam { fill: var(--bg); opacity: .5; }
+.piano-btn:active .k-w { fill: var(--text); }
 
-.pinned-bottom { bottom: 0; }
-.pinned-bottom .pinned-inner {
-  display: flex; flex-direction: column; align-items: center; gap: 9px;
-  padding: 8px var(--pad) calc(8px + env(safe-area-inset-bottom));
-}
 
 /* ---------------- el acorde, que es el mando ---------------- */
 .chord-name {
   display: flex; align-items: baseline; justify-content: center; gap: .05em;
   margin: 0;
   font-size: clamp(4.2rem, 26vw, 7rem);
-  font-weight: 900; line-height: .9; letter-spacing: -.03em;
+  font-weight: var(--w-big); line-height: .9; letter-spacing: -.03em;
 }
 .tok {
   position: relative;
@@ -152,7 +211,7 @@ button {
 .chord-line {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   margin: 8px 0 0;
-  font-size: .66rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  font-size: .66rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
   color: var(--beige);
 }
 /* la paraula del tipus és el mando de l'extensió, sempre */
@@ -165,7 +224,7 @@ button {
 }
 .line-ext.active { border-bottom-color: var(--beige); }
 .chord-line em {
-  font-style: normal; font-family: var(--mono); font-weight: 800;
+  font-style: normal; font-family: var(--mono); font-weight: var(--w-caps);
   letter-spacing: .1em; text-transform: none; color: var(--muted);
 }
 
@@ -179,7 +238,7 @@ button {
   align-items: center; gap: 10px; text-align: center;
 }
 .empty b {
-  font-size: .66rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  font-size: .66rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
   color: var(--beige);
 }
 .empty span { font-size: .82rem; color: var(--dim); max-width: 260px; }
@@ -199,44 +258,37 @@ button {
 .kb-head.kb-l { justify-content: flex-start; }
 
 /* ---------------- posición / inversión ---------------- */
-.pager { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; }
-.pager-main {
-  display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px;
-  align-items: center; gap: 8px; width: 100%; max-width: 340px;
+.wheel {
+  display: flex; align-items: flex-start;
+  width: 100%;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 2px calc(50% - var(--wh-w) / 2) 0;
 }
-/* flechas tipográficas: sin caja, solo el glifo */
-.chev {
-  appearance: none; border: 0; background: none; cursor: pointer;
-  height: 48px; padding: 0;
-  color: var(--muted);
-  font-family: var(--sans);
-  font-size: 2rem; font-weight: 500; line-height: 1;
-}
-.chev:active { color: var(--beige); }
-.chev:disabled { opacity: .2; }
-.pager-label { text-align: center; min-width: 0; }
-.pager-label b {
-  display: block;
-  font-family: var(--mono); font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em;
-}
-.pager-label span {
-  display: block; margin-top: 4px;
-  font-size: .62rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
-  color: var(--muted);
-}
+.wheel::-webkit-scrollbar { display: none; }
 
-.dots { display: flex; gap: 2px; }
-.dot {
+.wh-item {
+  flex: 0 0 var(--wh-w); width: var(--wh-w);
+  scroll-snap-align: center;
   appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
-  width: 24px; height: 16px; position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  color: var(--text);
+  transform-origin: 50% 24%;
+  will-change: transform, opacity, filter;
 }
-.dot::before {
-  content: ""; position: absolute; left: 50%; top: 50%;
-  width: 10px; height: 5px; margin: -2.5px 0 0 -5px;
-  background: var(--line);
+.wh-item b {
+  font-family: var(--mono); font-size: 1.2rem; font-weight: var(--w-caps);
+  letter-spacing: -.02em; line-height: 1; white-space: nowrap;
 }
-.dot.on::before { background: var(--beige); }
-
+.wh-item span {
+  font-size: .55rem; font-weight: var(--w-caps); letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
+  text-align: center; line-height: 1.25;
+}
+.wh-item.on span { color: var(--beige); }
+/* flechas tipográficas: sin caja, solo el glifo */
 /* ---------------- desenfoque al cambiar ---------------- */
 .fx-out { animation: fx-out .13s ease-in both; will-change: filter, opacity; }
 .fx-in  { animation: fx-in .34s cubic-bezier(.2,.8,.2,1) both; will-change: filter, opacity; }
@@ -282,6 +334,18 @@ button {
 }
 @keyframes sheet-out { to { opacity: 0; filter: blur(10px); } }
 
+/* l'aparenca: dues seccions amb el seu retol, mateixa tipografia */
+/* dues seccions, una sota l'altra i ben separades: a dalt el color,
+   a baix la lletra. Cada opcio en la seva propia linia. */
+.sheet[data-kind="look"] .opt-grid { grid-template-columns: 1fr; gap: 22px; }
+.sheet[data-kind="look"] .opt-grid + .opt-grid { margin-top: 52px; }
+.sheet[data-kind="look"] .opt { padding: 6px 2px; }
+.sheet[data-kind="look"] .opt-big { font-size: 1.9rem; }
+/* cada lletra es mostra amb la seva propia lletra */
+.opt.f-outfit .opt-big { font-family: "Outfit", sans-serif; font-weight: 900; }
+.opt.f-fraunces .opt-big { font-family: "Fraunces", serif; font-weight: 900; }
+.opt.f-instrument .opt-big { font-family: "Instrument Serif", serif; font-weight: 400; }
+
 .opt-grid { display: grid; gap: 14px 8px; }
 .opt-grid + .opt-grid { margin-top: 22px; }
 /* files sempre plenes: 6+3+3 fonamentals i 3+9+16 extensions */
@@ -292,7 +356,7 @@ button {
   appearance: none; border: 0; background: none; cursor: pointer; padding: 4px 2px;
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   color: var(--dim);
-  font-family: var(--sans); font-weight: 900;
+  font-family: var(--sans); font-weight: var(--w-big);
   animation: opt-in .32s cubic-bezier(.2,.8,.2,1) both;
   animation-delay: calc(var(--i, 0) * 14ms);
 }
@@ -338,14 +402,14 @@ button {
 }
 .tool-hint {
   margin-top: 18px; min-height: 1.2em;
-  font-size: .58rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
   color: var(--dim);
 }
 
 /* afinador */
 .tuner-note {
   font-size: clamp(4.4rem, 30vw, 7rem);
-  font-weight: 900; line-height: .9; letter-spacing: -.03em;
+  font-weight: var(--w-big); line-height: .9; letter-spacing: -.03em;
 }
 .tuner-note small {
   font-size: .3em; font-weight: 700; color: var(--muted);
@@ -365,7 +429,7 @@ button {
   appearance: none; border: 0; background: none; cursor: pointer;
   margin-top: 14px; padding: 8px 4px;
   color: var(--beige);
-  font-size: .66rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  font-size: .66rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
   border-bottom: 2px solid var(--beige);
 }
 .mic-btn[hidden] { display: none; }
@@ -374,7 +438,7 @@ button {
 .mn-bpm {
   appearance: none; border: 0; background: none; cursor: ns-resize; padding: 0;
   font-family: var(--sans); font-size: clamp(5rem, 36vw, 8rem);
-  font-weight: 900; line-height: .9; letter-spacing: -.04em;
+  font-weight: var(--w-big); line-height: .9; letter-spacing: -.04em;
   color: var(--text);
   touch-action: none;
   -webkit-user-select: none; user-select: none;
@@ -463,12 +527,14 @@ button {
 @media (max-height: 480px) {
   /* aqui l'alcada es or, pero l'acord tambe baixa i creix: mes peca de
      la pagina que titol, nomes amb mesures d'apaisat */
-  :root { --top-h: 122px; --bot-h: 92px; }
+  :root { --top-h: 122px; }
+  .panel-inner { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .wheel-host { padding-top: 8px; }
   .chord-name { font-size: clamp(3.2rem, 9vh, 4rem); }
   .chord-line { display: none; }
   .pinned-top .pinned-inner { padding: calc(34px + env(safe-area-inset-top)) var(--pad) 10px; }
   .piano-btn { top: calc(10px + env(safe-area-inset-top)); }
-  .chev { height: 36px; }
+  .look-btn { top: calc(10px + env(safe-area-inset-top)); }
   .kb-head { font-size: .52rem; }
 
   /* tot l'ample de pantalla */
@@ -495,7 +561,7 @@ button {
   align-items: center; gap: 12px; text-align: center; padding: 0 26px;
 }
 .boot-error b {
-  font-size: .66rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  font-size: .66rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
   color: var(--beige);
 }
 .boot-error span { font-family: var(--mono); font-size: .74rem; color: var(--muted); }

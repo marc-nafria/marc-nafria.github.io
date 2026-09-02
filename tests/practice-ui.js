@@ -73,6 +73,8 @@ const document = {
   createElementNS: (ns, t) => new Node(t),
   createTextNode: t => { const n = new Node('#text'); n.textContent = t; return n; },
   body: new Node('body'),
+  documentElement: new Node('html'),
+  querySelector() { return null; },
   listeners: {},
   addEventListener(t, fn) { (this.listeners[t] = this.listeners[t] || []).push(fn); },
   removeEventListener(t, fn) { this.listeners[t] = (this.listeners[t] || []).filter(f => f !== fn); },
@@ -178,14 +180,23 @@ guard('estructura', () => {
   ok(app.querySelectorAll('.panel')[3].querySelectorAll('.mn-bpm').length === 1,
     'el pla de la dreta és el tempo');
   ok(app.querySelectorAll('.pinned-top').length === 1, 'capa fija arriba');
-  ok(app.querySelectorAll('.pinned-bottom').length === 1, 'capa fija abajo');
+  ok(app.querySelectorAll('.pinned-bottom').length === 0,
+    'ja no hi ha capa fixa a baix: la roda és de cada secció');
   ok(app.querySelectorAll('.watermark').length === 0, 'sin marca de agua detrás');
   ok(app.querySelectorAll('.top').length === 0, 'ya no hay barra de instrumento');
   ok(app.querySelectorAll('.dock').length === 0, 'ya no hay barra inferior de selección');
   const last = app.children[app.children.length - 1];
-  ok((last.attrs.class || '').indexOf('pinned-bottom') !== -1,
-    'la última capa es la de posición/inversión');
-  ok(last.querySelectorAll('.pager').length === 1, 'la capa de abajo contiene el paginador');
+  ok((last.attrs.class || '').indexOf('pinned-top') !== -1,
+    'la darrera capa és la de l’acord');
+  ['guitar', 'piano'].forEach(ins => {
+    const panel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === ins);
+    ok(panel.querySelectorAll('.wheel').length === 1,
+      'la secció de ' + ins + ' duu la seva pròpia roda');
+    const inner = panel.querySelectorAll('.panel-inner')[0];
+    const order = inner.children.map(c => c.attrs.class);
+    ok(order.join('|') === 'stage|wheel-host',
+      'amb la roda just sota l’instrument: ' + order.join('|'));
+  });
 });
 
 /* ---- el armazón no se reconstruye: si se reconstruyera, el
@@ -207,7 +218,8 @@ guard('canvi de pla', () => {
   window.Practice.goTo('piano');
   ok(state.ins === 'piano', 'goTo porta al piano');
   ok(storage.get('ac.ins') === 'piano', 'i ho recorda');
-  ok(texts(app, '.pager-label')[0].length > 0, 'el paginador passa a les inversions');
+  ok(app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano')
+    .querySelectorAll('.wh-item').length > 0, 'la secció del piano duu les inversions');
   ok(!app.classList.contains('on-tool'), 'als instruments les capes es veuen');
 
   window.Practice.goTo('metronome');
@@ -246,10 +258,11 @@ guard('digitación de piano', () => {
   state.rootPc = 0; state.quality = 'maj7'; state.ins = 'piano'; state.posP = 0;
   repaint();
   const t = texts(app, 'text');
-  ok(t.indexOf('R1') !== -1, 'digitación de la derecha: ' + t.slice(0, 12).join(' '));
-  ok(t.indexOf('R5') !== -1, 'la derecha llega al meñique');
-  ok(t.indexOf('L5') !== -1, 'digitación de la izquierda');
-  ok(t.indexOf('L1') !== -1, 'la izquierda llega al pulgar');
+  ok(t.indexOf('1') !== -1 && t.indexOf('5') !== -1,
+    'el dit és només el número, sense L ni R: ' + t.slice(0, 12).join(' '));
+  ok(!t.some(x => /^[LR][1-5]$/.test(x)), 'cap etiqueta porta la mà al davant');
+  ok(t.filter(x => x === '1').length === 2 && t.filter(x => x === '5').length === 2,
+    'cada mà té el seu 1 i el seu 5: ' + t.filter(x => /^[1-5]$/.test(x)).join(' '));
   const heads = texts(app, '.kb-head');
   ok(heads.length === 2, 'hay dos cabeceras de mano: ' + heads.length);
   ok(/esquerra/.test(heads[0]) && /dreta/.test(heads[1]),
@@ -313,25 +326,16 @@ guard('manos de piano', () => {
 guard('cifrado con bajo', () => {
   state.rootPc = 0; state.quality = 'maj7'; state.ins = 'piano'; state.posP = 0;
   repaint();
-  const dots = app.querySelectorAll('.dot');
-  ok(dots.length === 4, 'Cmaj7 tiene 4 inversiones: ' + dots.length);
-
-  const seen = [];
-  for (let i = 0; i < 4; i++) {
-    app.querySelectorAll('.dot')[i].dispatch('click');
-    seen.push(app.querySelectorAll('.pager-label')[0].querySelectorAll('b')[0].textContent);
-  }
-  ok(seen.join(' ') === 'Cmaj7 Cmaj7/E Cmaj7/G Cmaj7/B',
-    'las inversiones se cifran con su bajo: ' + seen.join(' '));
+  const wheelTitles = () => app.querySelectorAll('.panel')
+    .find(p => p.attrs['data-ins'] === 'piano')
+    .querySelectorAll('.wh-item').map(i => i.querySelectorAll('b')[0].textContent);
+  ok(wheelTitles().length === 4, 'Cmaj7 tiene 4 inversiones: ' + wheelTitles().length);
+  ok(wheelTitles().join(' ') === 'Cmaj7 Cmaj7/E Cmaj7/G Cmaj7/B',
+    'las inversiones se cifran con su bajo: ' + wheelTitles().join(' '));
 
   state.quality = 'maj'; state.posP = 0;
   repaint();
-  const tri = [];
-  for (let i = 0; i < 3; i++) {
-    app.querySelectorAll('.dot')[i].dispatch('click');
-    tri.push(app.querySelectorAll('.pager-label')[0].querySelectorAll('b')[0].textContent);
-  }
-  ok(tri.join(' ') === 'C C/E C/G', 'la tríada de C: ' + tri.join(' '));
+  ok(wheelTitles().join(' ') === 'C C/E C/G', 'la tríada de C: ' + wheelTitles().join(' '));
 });
 
 /* ---- el título como mando: dos piezas ---- */
@@ -442,8 +446,9 @@ guard('guitarra', () => {
   const strings = texts(app, 'text').filter(t => t === 'E');
   ok(strings.length >= 2, 'el diagrama rotula las cuerdas');
   const total = Shapes.forChord(5, 'maj').length;
-  ok(app.querySelectorAll('.dot').length === total,
-    'hay un punto por posición de F (' + total + ')');
+  const gWheel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'guitar');
+  ok(gWheel.querySelectorAll('.wh-item').length === total,
+    'hay una peça de roda por posición de F (' + total + ')');
   ok(app.querySelectorAll('.panel')[1].querySelectorAll('.diagram').length === 1,
     'la guitarra només duu la figura');
 });
@@ -531,7 +536,8 @@ guard('pianet lliure', () => {
   ok(typeof window.Sound.padOn === 'function', 'hi ha veu de pad');
 
   const btn = app.querySelectorAll('.piano-btn')[0];
-  ok(!!btn && btn.children.length === 3, 'la icona de tres tecles hi és');
+  ok(!!btn && /k-on/.test(btn.innerHTML) && /k-b/.test(btn.innerHTML),
+    'el botó duu la marca del teclat, la mateixa que la icona de l’app');
   btn.dispatch('click');
   const wrap = document.body.querySelectorAll('.fp-wrap')[0];
   ok(!!wrap, 'el piano ocupa tota la pantalla');
@@ -631,6 +637,59 @@ guard('l’afinador demana un toc (iOS no obre el micròfon tot sol)', () => {
     'i qualsevol toc del pla també val');
 });
 
+guard('aparença: clar, fosc i tres lletres', () => {
+  window.Practice.goTo('piano');
+  const btn = app.querySelectorAll('.look-btn')[0];
+  ok(!!btn, 'la icona d’aparença és a dalt a la dreta');
+  btn.dispatch('click');
+  const sheet = document.body.querySelectorAll('.sheet')[0];
+  ok(!!sheet && sheet.attrs['data-kind'] === 'look', 'obre el seu popup');
+  ok(sheet.querySelectorAll('.sheet-label').length === 0,
+    'sense rètols: ja s’entén què s’hi tria');
+  ok(sheet.querySelectorAll('.opt-grid').length === 2, 'dues graelles: modes i lletres');
+  const opts = sheet.querySelectorAll('.opt-big').map(o => o.textContent);
+  ok(opts.join(' ') === 'fosc clar Outfit Fraunces Instrument',
+    'dos modes i tres lletres: ' + opts.join(' '));
+
+  // triar tanca el popup
+  const clar = sheet.querySelectorAll('.opt').find(o => o.textContent === 'clar');
+  clar.dispatch('click');
+  ok(document.body.querySelectorAll('.sheet').length === 0, 'en triar, es tanca');
+  ok(document.documentElement.getAttribute('data-theme') === 'light',
+    'la pàgina passa a clar');
+  ok(window.localStorage.getItem('ac.theme') === 'light', 'i es recorda');
+
+  // els diagrames es tornen a dibuixar amb la paleta clara
+  const kb = app.querySelectorAll('.kb')[0].querySelectorAll('svg')[0];
+  const fills = kb.querySelectorAll('rect').map(r => r.attrs.fill);
+  ok(fills.indexOf('#E6E0D2') !== -1, 'les tecles blanques passen a paper: ' + fills.slice(0, 3));
+  ok(fills.indexOf('#8E887F') === -1, 'i no queda cap gris del mode fosc');
+  const ring = kb.querySelectorAll('circle').find(c => c.attrs.stroke === '#141210');
+  ok(!!ring, 'la bombolla clara guanya anella per no perdre’s sobre tecla clara');
+  const beige = kb.querySelectorAll('circle').map(c => c.attrs.fill);
+  ok(beige.indexOf('#CFA24A') !== -1 && beige.indexOf('#DCC9A6') === -1,
+    'l’accent passa a ocre, llegible sobre blanc');
+
+  // la lletra, al mateix popup i en una segona entrada
+  app.querySelectorAll('.look-btn')[0].dispatch('click');
+  let s2 = document.body.querySelectorAll('.sheet')[0];
+  s2.querySelectorAll('.opt').find(o => o.textContent === 'Fraunces').dispatch('click');
+  ok(document.documentElement.getAttribute('data-font') === 'fraunces',
+    'la lletra canvia i es tanca');
+  ok(document.body.querySelectorAll('.sheet').length === 0, 'sense quedar-se obert');
+  ok(window.localStorage.getItem('ac.font') === 'fraunces', 'i es recorda');
+
+  app.querySelectorAll('.look-btn')[0].dispatch('click');
+  s2 = document.body.querySelectorAll('.sheet')[0];
+  s2.querySelectorAll('.opt').find(o => o.textContent === 'Outfit').dispatch('click');
+  ok(document.documentElement.getAttribute('data-font') === null, 'i torna a Outfit');
+
+  app.querySelectorAll('.look-btn')[0].dispatch('click');
+  s2 = document.body.querySelectorAll('.sheet')[0];
+  s2.querySelectorAll('.opt').find(o => o.textContent === 'fosc').dispatch('click');
+  ok(document.documentElement.getAttribute('data-theme') === null, 'que torna al negre');
+});
+
 guard('les tecles marcades semblen polsades', () => {
   const kb = app.querySelectorAll('.kb')[0];
   const svg = kb.querySelectorAll('svg')[0];
@@ -640,17 +699,29 @@ guard('les tecles marcades semblen polsades', () => {
     'les marcades baixen un pèl i la resta no: ' + sunk.length + '/' + keys.length);
 });
 
-guard('el nom de dalt no parpelleja en canviar la inversió', () => {
-  const dots = app.querySelectorAll('.dot');
-  ok(dots.length > 1, 'hi ha més d’una inversió per provar: ' + dots.length);
-  dots[1].dispatch('click');
+guard('la roda: el nom de dalt no parpelleja i aquí baix no hi ha blur', () => {
+  const activePanel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === state.ins);
+  const items = activePanel.querySelectorAll('.wh-item');
+  ok(items.length > 1, 'hi ha més d’una inversió per provar: ' + items.length);
+  ok(items[0].classList.contains('on') && !items[1].classList.contains('on'),
+    'la del mig es llegeix neta i les altres no');
+  ok(items[0].style.filter === 'none' && /blur/.test(items[1].style.filter),
+    'les del costat es desdibuixen: ' + items[1].style.filter);
+  ok(Number(items[1].style.opacity) < 1 && /scale/.test(items[1].style.transform),
+    'i es fan petites i s’aparten');
+  items[1].dispatch('click');
+  ok(activePanel.querySelectorAll('.wh-item')[1].getAttribute('aria-selected') === 'true',
+    'tocar-ne una la porta al centre');
+  const wheelKids = activePanel.querySelectorAll('.wheel')[0].children;
+  ok(!wheelKids.some(k => k.classList.contains('fx-in') || k.classList.contains('fx-out')),
+    'la roda no fa l’animació de blur');
   const topKids = app.querySelectorAll('.pinned-inner')[0].children;
   const blurredTop = topKids.filter(k =>
     k.classList.contains('fx-in') || k.classList.contains('fx-out')).length;
   ok(topKids.length > 0 && blurredTop === 0,
     'el nom de l’acord queda quiet: ' + blurredTop + ' fills amb fx');
-  const panelKids = app.querySelectorAll('.panel-inner')[0].children;
-  ok(panelKids.some(k => k.classList.contains('fx-in')),
+  const stageKids = activePanel.querySelectorAll('.stage')[0].children;
+  ok(stageKids.some(k => k.classList.contains('fx-in')),
     'els diagrames sí que fan la transició');
 });
 

@@ -18,10 +18,60 @@
     mark:  { fill: '#8C877E', text: '#0A0A0A' }
   };
 
+  /* ----------------------------------------------------------------
+     Mode clar: els colors d'aqui son els del mode fosc, i aquest mapa
+     els porta al seu equivalent quan la pagina va en clar. Un sol punt
+     de pas (l'atribut fill o stroke) en lloc de cent condicionals.
+     ---------------------------------------------------------------- */
+  var LIGHT = {
+    '#DCC9A6': '#CFA24A',   /* or calid: la tinta negra hi ha de llegir */
+    '#C9B48C': '#9C7C36',
+    '#F4F1EB': '#141210',   /* la celleta de la corda a l'aire */
+    '#F7F4EF': '#FFFFFF',   /* tecla blanca marcada */
+    '#F2EFE9': '#FFFFFF',   /* bombolla d'acord */
+    '#C7C0B2': '#F6F2E9',   /* tecla blanca del pianet */
+    '#8E887F': '#E6E0D2',   /* tecla blanca sense marcar */
+    '#0F0E0D': '#2B2721',   /* tecla negra */
+    '#171614': '#EDE7DA',   /* fons: mastil i tecla negra del pianet */
+    '#4A463F': '#9A9284',   /* vora de negra */
+    '#5E5852': '#8B8377',   /* xifra de peu apagada */
+    '#9C958B': '#5F584E',   /* xifra de peu marcada */
+    '#3C3B38': '#D2CABA',   /* rol escala */
+    '#CFC9BF': '#2A2724',
+    '#8C877E': '#7C7568',   /* rol marca */
+    '#0A0A0A': '#141210',   /* tinta */
+    '#060605': '#141210',
+    '#3A3833': '#CBC3B2',   /* vora del mastil */
+    '#302E2A': '#C9C1B0',   /* punts d'incrustacio */
+    '#2E3542': '#BFC4CE',
+    '#464339': '#B7AF9E',   /* trasts */
+    '#403C36': '#BDB5A4',
+    '#7A746C': '#8A8478',   /* cordes */
+    '#8E8A82': '#6E6A62',
+    '#7A756D': '#7A7368',   /* noms i xifres */
+    '#6A645C': '#7C756A',
+    '#57524B': '#8A8377',
+    '#C6C0B6': '#6E685E',   /* anella de corda a l'aire */
+    '#14120F': '#141210'
+  };
+
+  function lightMode() {
+    try {
+      return document.documentElement.getAttribute('data-theme') === 'light';
+    } catch (e) { return false; }
+  }
+
+  function tone(v) {
+    if (!lightMode()) { return v; }
+    return LIGHT[String(v).toUpperCase()] || v;
+  }
+
   function el(name, attrs) {
     var node = document.createElementNS(NS, name);
     Object.keys(attrs || {}).forEach(function (k) {
-      if (attrs[k] !== null && attrs[k] !== undefined) { node.setAttribute(k, attrs[k]); }
+      if (attrs[k] === null || attrs[k] === undefined) { return; }
+      var v = (k === 'fill' || k === 'stroke') ? tone(attrs[k]) : attrs[k];
+      node.setAttribute(k, v);
     });
     return node;
   }
@@ -98,7 +148,7 @@
       var x = boardX + i * FRET_W;
       svg.appendChild(el('line', {
         x1: x, y1: TOP - 8, x2: x, y2: TOP + span + 8,
-        stroke: i === 0 && showOpen ? '#F7F4EF' : '#464339',
+        stroke: i === 0 && showOpen ? '#F4F1EB' : '#464339',
         'stroke-width': i === 0 && showOpen ? 5 : 1.8
       }));
     }
@@ -116,7 +166,8 @@
       var role = ROLE[mk.role] || ROLE.chord;
       var g = el('g', { 'data-midi': midi });
       g.appendChild(el('circle', {
-        cx: cx, cy: cy, r: 10, fill: role.fill
+        cx: cx, cy: cy, r: 10, fill: role.fill,
+        stroke: lightMode() ? '#141210' : null, 'stroke-width': lightMode() ? 1.1 : null
       }));
       var label = mk.label || (labels === 'degree' ? (mk.degree || '') :
         labels === 'none' ? '' : Theory.pcName(midi, { flats: !!mk.flats }));
@@ -310,7 +361,8 @@
         idxs.forEach(function (i) {
           barred[i] = true;
           if (isRoot(i, fret)) {
-            svg.appendChild(el('circle', { cx: colX(i), cy: y, r: 5 * k, fill: '#C9B48C' }));
+            svg.appendChild(el('circle', { cx: colX(i), cy: y, r: 5 * k, fill: '#C9B48C',
+              stroke: lightMode() ? '#141210' : null, 'stroke-width': lightMode() ? 1 * k : null }));
           }
         });
         svg.appendChild(txt({
@@ -327,7 +379,9 @@
       var y = rowY(fret);
       var root = isRoot(idx, fret);
       svg.appendChild(el('circle', {
-        cx: x, cy: y, r: 7.2 * k, fill: root ? '#DCC9A6' : '#F2EFE9'
+        cx: x, cy: y, r: 7.2 * k, fill: root ? '#DCC9A6' : '#F2EFE9',
+        /* en clar, la rodona clara sobre paper clar necessita anella */
+        stroke: lightMode() ? '#141210' : null, 'stroke-width': lightMode() ? 1.2 * k : null
       }));
       var finger = shape.fingers && shape.fingers[idx];
       if (finger) {
@@ -478,7 +532,8 @@
         idxs.forEach(function (i) {
           barred[i] = true;
           if (isRoot(i, fret)) {
-            svg.appendChild(el('circle', { cx: x, cy: rowY(i), r: 4.6 * k, fill: '#C9B48C' }));
+            svg.appendChild(el('circle', { cx: x, cy: rowY(i), r: 4.6 * k, fill: '#C9B48C',
+              stroke: lightMode() ? '#141210' : null, 'stroke-width': lightMode() ? 1 * k : null }));
           }
         });
         svg.appendChild(txt({
@@ -495,7 +550,8 @@
       var y = rowY(idx);
       var root = isRoot(idx, fret);
       svg.appendChild(el('circle', {
-        cx: x, cy: y, r: 6.6 * k, fill: root ? '#DCC9A6' : '#F2EFE9'
+        cx: x, cy: y, r: 6.6 * k, fill: root ? '#DCC9A6' : '#F2EFE9',
+        stroke: lightMode() ? '#141210' : null, 'stroke-width': lightMode() ? 1.2 * k : null
       }));
       var finger = shape.fingers && shape.fingers[idx];
       if (finger) {

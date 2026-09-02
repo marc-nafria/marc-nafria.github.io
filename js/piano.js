@@ -19,10 +19,60 @@
     mark:  { fill: '#8C877E', text: '#0A0A0A' }
   };
 
+  /* ----------------------------------------------------------------
+     Mode clar: els colors d'aqui son els del mode fosc, i aquest mapa
+     els porta al seu equivalent quan la pagina va en clar. Un sol punt
+     de pas (l'atribut fill o stroke) en lloc de cent condicionals.
+     ---------------------------------------------------------------- */
+  var LIGHT = {
+    '#DCC9A6': '#CFA24A',   /* or calid: la tinta negra hi ha de llegir */
+    '#C9B48C': '#9C7C36',
+    '#F4F1EB': '#141210',   /* la celleta de la corda a l'aire */
+    '#F7F4EF': '#FFFFFF',   /* tecla blanca marcada */
+    '#F2EFE9': '#FFFFFF',   /* bombolla d'acord */
+    '#C7C0B2': '#F6F2E9',   /* tecla blanca del pianet */
+    '#8E887F': '#E6E0D2',   /* tecla blanca sense marcar */
+    '#0F0E0D': '#2B2721',   /* tecla negra */
+    '#171614': '#EDE7DA',   /* fons: mastil i tecla negra del pianet */
+    '#4A463F': '#9A9284',   /* vora de negra */
+    '#5E5852': '#8B8377',   /* xifra de peu apagada */
+    '#9C958B': '#5F584E',   /* xifra de peu marcada */
+    '#3C3B38': '#D2CABA',   /* rol escala */
+    '#CFC9BF': '#2A2724',
+    '#8C877E': '#7C7568',   /* rol marca */
+    '#0A0A0A': '#141210',   /* tinta */
+    '#060605': '#141210',
+    '#3A3833': '#CBC3B2',   /* vora del mastil */
+    '#302E2A': '#C9C1B0',   /* punts d'incrustacio */
+    '#2E3542': '#BFC4CE',
+    '#464339': '#B7AF9E',   /* trasts */
+    '#403C36': '#BDB5A4',
+    '#7A746C': '#8A8478',   /* cordes */
+    '#8E8A82': '#6E6A62',
+    '#7A756D': '#7A7368',   /* noms i xifres */
+    '#6A645C': '#7C756A',
+    '#57524B': '#8A8377',
+    '#C6C0B6': '#6E685E',   /* anella de corda a l'aire */
+    '#14120F': '#141210'
+  };
+
+  function lightMode() {
+    try {
+      return document.documentElement.getAttribute('data-theme') === 'light';
+    } catch (e) { return false; }
+  }
+
+  function tone(v) {
+    if (!lightMode()) { return v; }
+    return LIGHT[String(v).toUpperCase()] || v;
+  }
+
   function el(name, attrs) {
     var node = document.createElementNS(NS, name);
     Object.keys(attrs || {}).forEach(function (k) {
-      if (attrs[k] !== null && attrs[k] !== undefined) { node.setAttribute(k, attrs[k]); }
+      if (attrs[k] === null || attrs[k] === undefined) { return; }
+      var v = (k === 'fill' || k === 'stroke') ? tone(attrs[k]) : attrs[k];
+      node.setAttribute(k, v);
     });
     return node;
   }
@@ -161,7 +211,10 @@
       if (mk) {
         var cy = white ? PAD + h - 25 : PAD + h - 17;
         if (white) {
-          group.appendChild(el('circle', { cx: x + w / 2, cy: cy, r: 13, fill: role.fill }));
+          group.appendChild(el('circle', {
+            cx: x + w / 2, cy: cy, r: 13, fill: role.fill,
+            stroke: lightMode() ? '#141210' : null, 'stroke-width': lightMode() ? 1.2 : null
+          }));
         }
         var text = labelFor(mk, midi, labels);
         if (text) {

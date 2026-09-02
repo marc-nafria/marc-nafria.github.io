@@ -194,6 +194,7 @@
     }
 
     function stop() {
+      if (stream) { Sound.session('playback'); }
       if (raf) { global.cancelAnimationFrame(raf); raf = null; }
       if (source) { try { source.disconnect(); } catch (e) { /* res */ } source = null; }
       if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
@@ -221,6 +222,7 @@
         hintEl.textContent = 'aquest navegador no dona accés al micròfon';
         return;
       }
+      Sound.session('play-and-record');   /* iOS: obrir el microfon sense emmudir */
       hintEl.textContent = 'demanant el micròfon…';
       micBtn.hidden = true;
       global.navigator.mediaDevices.getUserMedia({

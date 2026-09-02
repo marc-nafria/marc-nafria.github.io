@@ -15,10 +15,26 @@
 
   function available() { return !!Ctor; }
 
+  /**
+   * iOS: sense aixo, el commutador de silencio del costat del telefon
+   * enmudeix tot el Web Audio (a Safari i a qualsevol navegador de
+   * l'iPhone, que tots son WebKit per dins). Amb 'playback' el sistema
+   * ho tracta com a musica i sona igual. L'afinador demana 'play-and-record'
+   * quan obre el microfon.
+   */
+  function session(type) {
+    try {
+      if (global.navigator && global.navigator.audioSession) {
+        global.navigator.audioSession.type = type || 'playback';
+      }
+    } catch (e) { /* navegador sense audioSession: res a fer */ }
+  }
+
   /** Create/resume the context. Must be called from a user gesture. */
   function ready() {
     if (!Ctor) { return null; }
     if (!ctx) {
+      session('playback');
       ctx = new Ctor();
       comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -14;
@@ -33,8 +49,32 @@
       b.connect(ctx.destination);
       b.start(0);
     }
-    if (ctx.state === 'suspended' && ctx.resume) { ctx.resume(); }
+    /* iOS deixa el context en 'suspended' i, si el telefon rep una
+       trucada o es va a segon pla, en 'interrupted' */
+    if (ctx.state !== 'running' && ctx.resume) {
+      try { ctx.resume(); } catch (e) { /* ja s'esta reprenent */ }
+    }
     return ctx;
+  }
+
+  /* El primer toc de la pagina desbloqueja l'audio, sigui on sigui: iOS
+     nomes deixa engegar-lo des d'un gest de l'usuari, i el gest que
+     l'usuari fa no sempre es el boto que fa soroll. */
+  function unlock() {
+    ready();
+    if (ctx && ctx.state === 'running') {
+      ['pointerdown', 'touchend', 'keydown'].forEach(function (t) {
+        document.removeEventListener(t, unlock, true);
+      });
+    }
+  }
+  if (global.document && document.addEventListener) {
+    ['pointerdown', 'touchend', 'keydown'].forEach(function (t) {
+      document.addEventListener(t, unlock, true);
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden && ctx && ctx.state !== 'running') { ready(); }
+    });
   }
 
   function setInstrument(name) {
@@ -280,6 +320,7 @@
     sequence: sequence,
     stopSequence: stopSequence,
     click: click,
+    session: session,
     padOn: padOn,
     tone: tone,
     get ctx() { return ctx; }

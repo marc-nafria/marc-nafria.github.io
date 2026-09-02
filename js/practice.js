@@ -59,6 +59,56 @@
     if (Theory.CHORDS[q]) { state.quality = q; }
     var ins = read('ins', 'guitar');
     state.ins = INSTRUMENTS[ins] ? ins : 'guitar';
+    state.theme = read('theme', 'dark') === 'light' ? 'light' : 'dark';
+    applyTheme(state.theme);
+    var f = read('font', 'outfit');
+    state.font = FONTS.some(function (x) { return x.id === f; }) ? f : 'outfit';
+    applyFont(state.font);
+  }
+
+  /* La marca de l'app: tres blanques, dues negres i la tecla alçada.
+     La mateixa que icon.svg, aquí en una caixa de 24x20. */
+  var PIANO_MARK = '<svg viewBox="0 0 24 20" aria-hidden="true" focusable="false"><path class="k-w" d="M0 0h24v17.5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 17.5z"/><path class="k-on" d="M16 0h8v17.5a2.5 2.5 0 0 1-2.5 2.5H16z"/><path class="k-seam" d="M7.7 13h.6v7h-.6zM15.7 13h.6v7h-.6z"/><path class="k-b" d="M6.3 0h3.4v12.4H6.3zM14.3 0h3.4v12.4h-3.4z"/></svg>';
+
+  /* ---------------- clar o fosc ---------------- */
+  /* Es guarda l'eleccio i s'avisa el navegador (la barra de l'iPhone
+     i els controls natius han d'anar a joc). */
+  function applyTheme(name) {
+    var light = name === 'light';
+    var root = document.documentElement;
+    if (!root) { return; }
+    if (light) { root.setAttribute('data-theme', 'light'); }
+    else { root.removeAttribute('data-theme'); }
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) { meta.setAttribute('content', light ? '#F4F1EB' : '#060605'); }
+    var scheme = document.querySelector('meta[name="color-scheme"]');
+    if (scheme) { scheme.setAttribute('content', light ? 'light' : 'dark'); }
+  }
+
+  var FONTS = [
+    { id: 'outfit', name: 'Outfit', sample: 'Cmaj' },
+    { id: 'fraunces', name: 'Fraunces', sample: 'Cmaj' },
+    { id: 'instrument', name: 'Instrument', sample: 'Cmaj' }
+  ];
+
+  function applyFont(id) {
+    var root = document.documentElement;
+    if (!root) { return; }
+    if (id && id !== 'outfit') { root.setAttribute('data-font', id); }
+    else { root.removeAttribute('data-font'); }
+  }
+
+  function setTheme(name) {
+    state.theme = name === 'light' ? 'light' : 'dark';
+    write('theme', state.theme);
+    applyTheme(state.theme);
+    render(false);            /* els diagrames es tornen a dibuixar */
+  }
+
+  function setFont(id) {
+    state.font = id;
+    write('font', id);
+    applyFont(id);
   }
 
   /* ---------------- utilidades ---------------- */
@@ -277,12 +327,12 @@
     var flats = useFlats(state.rootPc);
     var fingers = handFingers(midis, hand);
 
-    // Dentro del círculo, mano y dedo; el nombre de la nota va debajo
-    // de la tecla, así no compiten.
+    // Dentro del círculo, solo el número de dedo: de quina mà és ja ho
+    // diu la capçalera del teclat. El nom de la nota va debajo.
     var marks = midis.map(function (m, i) {
       var deg = degreeOfMidi(m);
       return {
-        midi: m, label: hand + fingers[i],
+        midi: m, label: String(fingers[i]),
         flats: deg ? deg.charAt(0) === 'b' : flats,
         role: Theory.mod12(m) === Theory.mod12(state.rootPc) ? 'root' : 'chord'
       };
@@ -351,65 +401,105 @@
     return midis.length ? Theory.mod12(midis[0]) : state.rootPc;
   }
 
-  function pagerData() {
-    if (state.ins === 'piano') {
+  function pagerData(ins) {
+    if ((ins || state.ins) === 'piano') {
       var v = voicings(RH_BASE);
-      var i = Math.min(state.posP, v.length - 1);
       return {
-        total: v.length, index: i,
-        title: slashSymbol(v[i][0]),
-        sub: INV_NAMES[i] || 'inversión',
-        onChange: function (n) { change(function () { state.posP = n; }, true); }
+        index: Math.min(state.posP, v.length - 1),
+        items: v.map(function (notes, i) {
+          return { title: slashSymbol(notes[0]), sub: INV_NAMES[i] || 'inversió' };
+        }),
+        onChange: function (n) {
+          change(function () { state.posP = n; }, { keepTitle: true, keepWheel: true });
+        }
       };
     }
     var list = shapes();
     if (!list.length) {
-      return { total: 1, index: 0, title: symbol(), sub: 'sense posicions', onChange: function () {} };
+      return {
+        index: 0, items: [{ title: symbol(), sub: 'sense posicions' }],
+        onChange: function () {}
+      };
     }
-    var j = Math.min(state.posG, list.length - 1);
-    var shape = list[j];
     return {
-      total: list.length, index: j,
-      title: slashSymbol(bassOfShape(shape)),
-      sub: (shape.label || 'posició') + (shape.base > 1 ? ' · trast ' + shape.base : ''),
-      onChange: function (n) { change(function () { state.posG = n; }, true); }
+      index: Math.min(state.posG, list.length - 1),
+      items: list.map(function (shape) {
+        return {
+          title: slashSymbol(bassOfShape(shape)),
+          sub: (shape.label || 'posició') + (shape.base > 1 ? ' · trast ' + shape.base : '')
+        };
+      }),
+      onChange: function (n) {
+        change(function () { state.posG = n; }, { keepTitle: true, keepWheel: true });
+      }
     };
   }
 
-  function pager() {
-    var d = pagerData();
-    var chevron = function (dir, label) {
-      return h('button', {
-        class: 'chev', type: 'button', 'aria-label': label,
-        html: dir < 0 ? '&#8249;' : '&#8250;',
-        disabled: d.total <= 1 ? 'disabled' : null,
-        onclick: function () { d.onChange((d.index + dir + d.total) % d.total); }
-      });
-    };
+  /* ----------------------------------------------------------------
+     La roda: totes les inversions (o posicions) en una tira que es
+     llisca. La del mig es llegeix neta; les del costat es fan petites,
+     es desdibuixen i s'aparten, com una roda que gira. Cap fletxa.
+     ---------------------------------------------------------------- */
+  var WH_W = 102;          /* ample d'una peca; el mateix que al CSS */
+  var wheels = {};         /* una roda per instrument, dins de la seva seccio */
+  var wheelTimer = null;
 
-    var dots = h('div', { class: 'dots' });
-    for (var i = 0; i < d.total; i++) {
-      dots.appendChild(h('button', {
-        class: 'dot' + (i === d.index ? ' on' : ''), type: 'button',
-        'aria-label': 'Posició ' + (i + 1),
-        onclick: (function (n) { return function () { d.onChange(n); }; })(i)
-      }));
+  function wheelPaint(el) {
+    var wheelEl = el;
+    if (!wheelEl) { return; }
+    var kids = wheelEl.children;
+    var at = (wheelEl.scrollLeft || 0) / WH_W;
+    for (var i = 0; i < kids.length; i++) {
+      var d = Math.abs(i - at);
+      var near = Math.min(d, 1.8);
+      /* radi tancat: cauen de pressa i s'enfonsen, com una roda que gira */
+      kids[i].style.transform = 'translateY(' + (near * 4.5).toFixed(1) + 'px) '
+        + 'scale(' + (1 - 0.36 * near).toFixed(3) + ')';
+      kids[i].style.opacity = (1 - 0.74 * Math.min(d, 1)).toFixed(3);
+      kids[i].style.filter = d < 0.08 ? 'none' : 'blur(' + (Math.min(d, 1.4) * 2.9).toFixed(2) + 'px)';
+      kids[i].classList.toggle('on', d < 0.5);
     }
-
-    return h('div', { class: 'pager' }, [
-      h('div', { class: 'pager-main' }, [
-        chevron(-1, 'Anterior'),
-        h('div', { class: 'pager-label' }, [
-          h('b', { text: d.title }),
-          h('span', { text: d.sub })
-        ]),
-        chevron(1, 'Següent')
-      ]),
-      d.total > 1 ? dots : null
-    ]);
   }
 
-  function bottomContent() { return [pager()]; }
+  function wheelSettle(el, onChange, current) {
+    var at = Math.round((el.scrollLeft || 0) / WH_W);
+    var n = Math.max(0, Math.min(el.children.length - 1, at));
+    if (n !== current) { onChange(n); }
+  }
+
+  function wheel(ins) {
+    var d = pagerData(ins);
+    var strip = h('div', {
+      class: 'wheel', role: 'listbox', 'aria-label': 'Inversions i posicions'
+    });
+
+    d.items.forEach(function (it, i) {
+      strip.appendChild(h('button', {
+        class: 'wh-item', type: 'button', role: 'option',
+        'aria-selected': i === d.index ? 'true' : 'false',
+        onclick: function () {
+          /* tocar-ne una del costat la porta al centre */
+          if (i === d.index) { return; }
+          strip.scrollLeft = i * WH_W;
+          wheelPaint(strip);
+          d.onChange(i);
+        }
+      }, [h('b', { text: it.title }), h('span', { text: it.sub })]));
+    });
+
+    strip.addEventListener('scroll', function () {
+      wheelPaint(strip);
+      if (wheelTimer && global.clearTimeout) { global.clearTimeout(wheelTimer); }
+      wheelTimer = global.setTimeout(function () {
+        wheelSettle(strip, d.onChange, d.index);
+      }, 110);
+    });
+
+    wheels[ins] = strip;
+    strip.scrollLeft = d.index * WH_W;
+    wheelPaint(strip);
+    return strip;
+  }
 
   /* ---------------- título: el mando ---------------- */
   function titleContent() {
@@ -444,13 +534,24 @@
       onclick: function () { openSheet('ext'); }
     });
 
+    /* la mateixa marca que la icona de l'app: un teclat amb una
+       tecla alcada, que es justament el que obre */
     var pianoBtn = h('button', {
       class: 'piano-btn', type: 'button',
       'aria-label': 'Pianet lliure',
+      html: PIANO_MARK,
       onclick: function () { if (global.Tools) { global.Tools.openFreePiano(); } }
-    }, [h('i'), h('i'), h('i')]);
+    });
+
+    var lookBtn = h('button', {
+      class: 'look-btn', type: 'button',
+      'aria-label': 'Aparença: clar o fosc i tipus de lletra',
+      'aria-haspopup': 'dialog',
+      onclick: function () { openSheet('look'); }
+    }, [h('i')]);
 
     return [
+      lookBtn,
       pianoBtn,
       h('h1', { class: 'chord-name' }, [rootTok, extTok]),
       h('div', { class: 'chord-line' }, [
@@ -485,6 +586,31 @@
   function sheetBody(kind) {
     var wrap = h('div', {});
     var idx = 0;
+
+    if (kind === 'look') {
+      var modes = h('div', { class: 'opt-grid modes' });
+      [['dark', 'fosc'], ['light', 'clar']].forEach(function (m) {
+        modes.appendChild(option(m[1], {
+          pressed: state.theme === m[0],
+          index: idx++,
+          onPick: function () { setTheme(m[0]); closeSheet(); }
+        }));
+      });
+      wrap.appendChild(modes);
+
+      var fonts = h('div', { class: 'opt-grid fonts' });
+      FONTS.forEach(function (f) {
+        var btn = option(f.name, {
+          pressed: state.font === f.id,
+          index: idx++,
+          onPick: function () { setFont(f.id); closeSheet(); }
+        });
+        btn.classList.add('f-' + f.id);
+        fonts.appendChild(btn);
+      });
+      wrap.appendChild(fonts);
+      return wrap;
+    }
 
     if (kind === 'root') {
       var tiers = global.ChordData.rootTiers || [CANON];
@@ -527,7 +653,8 @@
 
     var panel = h('div', {
       class: 'sheet', 'data-kind': kind, role: 'dialog', 'aria-modal': 'true',
-      'aria-label': kind === 'root' ? 'Triar la fonamental' : 'Triar extensió'
+      'aria-label': kind === 'root' ? 'Triar la fonamental'
+        : (kind === 'look' ? 'Aparença' : 'Triar extensió')
     }, [sheetBody(kind)]);
 
     sheetEl = h('div', { class: 'sheet-wrap' }, [
@@ -571,21 +698,23 @@
   /* ---------------- el cambio: desenfocar, cambiar, enfocar ----------------
      keepTitle: en un canvi d'inversio o posicio el nom de dalt no canvia,
      aixi que no te sentit desenfocar-lo. */
-  function change(mutate, keepTitle) {
+  function change(mutate, o) {
+    var keep = o || {};
     if (busy || reducedMotion()) {
       mutate();
-      render(true, keepTitle);
+      render(true, keep);
       return;
     }
     busy = true;
     blurOut(shell.panels.guitar.inner);
     blurOut(shell.panels.piano.inner);
-    if (!keepTitle) { blurOut(shell.topInner); }
-    blurOut(shell.bottomInner);
+    if (!keep.keepTitle) { blurOut(shell.topInner); }
+    /* la roda de baix no es desdibuixa mai: ja te la seva propia
+       manera de dir que hi ha, i el blur alla no s'entenia */
     global.setTimeout(function () {
       busy = false;
       mutate();
-      render(true, keepTitle);
+      render(true, keep);
     }, OUT_MS);
   }
 
@@ -605,7 +734,6 @@
     if (INSTRUMENTS[id]) {
       state.ins = id;
       write('ins', id);
-      fill(shell.bottomInner, bottomContent());
     }
   }
 
@@ -651,9 +779,13 @@
     }
     PANELS.forEach(function (p) {
       if (INSTRUMENTS[p]) {
-        var inner = h('div', { class: 'panel-inner' });
+        /* l'escenari (diagrames) i, just a sota, la roda de la seccio:
+           es seva, hi llisca i queda a l'altura que li toca */
+        var stage = h('div', { class: 'stage' });
+        var wheelHost = h('div', { class: 'wheel-host' });
+        var inner = h('div', { class: 'panel-inner' }, [stage, wheelHost]);
         deck.appendChild(h('div', { class: 'panel', 'data-ins': p }, [inner]));
-        panels[p] = { inner: inner };
+        panels[p] = { inner: stage, wheelHost: wheelHost };
       } else {
         deck.appendChild(h('div', { class: 'panel panel-tool', 'data-ins': p },
           toolHandles[p] ? [toolHandles[p].el] : []));
@@ -662,21 +794,33 @@
     deck.addEventListener('scroll', onDeckScroll, { passive: true });
 
     var topInner = h('div', { class: 'pinned-inner' });
-    var bottomInner = h('div', { class: 'pinned-inner' });
 
     root.innerHTML = '';
     root.appendChild(deck);
     root.appendChild(h('div', { class: 'pinned pinned-top' }, [topInner]));
-    root.appendChild(h('div', { class: 'pinned pinned-bottom' }, [bottomInner]));
 
-    return { root: root, deck: deck, panels: panels, topInner: topInner, bottomInner: bottomInner };
+    return { root: root, deck: deck, panels: panels, topInner: topInner };
   }
 
-  function render(fx, keepTitle) {
+  function render(fx, o) {
+    var keep = o || {};
     fill(shell.panels.guitar.inner, guitarContent(), fx);
     fill(shell.panels.piano.inner, pianoContent(), fx);
-    fill(shell.topInner, titleContent(), fx && !keepTitle);
-    fill(shell.bottomInner, bottomContent(), fx);
+    fill(shell.topInner, titleContent(), fx && !keep.keepTitle);
+
+    Object.keys(INSTRUMENTS).forEach(function (ins) {
+      var host = shell.panels[ins].wheelHost;
+      if (keep.keepWheel && wheels[ins]) {
+        /* mateixa roda: nomes canvia quina peca esta triada */
+        var kids = wheels[ins].children;
+        var at = pagerData(ins).index;
+        for (var i = 0; i < kids.length; i++) {
+          kids[i].setAttribute('aria-selected', i === at ? 'true' : 'false');
+        }
+      } else {
+        fill(host, [wheel(ins)]);
+      }
+    });
   }
 
   function start() {
