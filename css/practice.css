@@ -16,6 +16,7 @@
   --line:  #3A3733;   /* tics i punts apagats */
   --text:  #F4F1EB;
   --beige: #DCC9A6;
+  --ok:    #93B478;   /* el verd d'encertar, nomes a l'oida */
   --muted: #948D83;
   --dim:   #66605A;
 
@@ -26,7 +27,7 @@
   --w-big:  900;   /* l'acord, la xifra de tempo, la nota de l'afinador */
   --w-caps: 800;   /* els micro-retols */
   --tight: -.03em;
-  --wh-w:  102px;  /* l'ample d'una peca de la roda */
+  --wh-w:  118px;  /* l'ample d'una peca de la roda */
   --mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
@@ -59,15 +60,24 @@
   --line:  #C7BFAF;
   --text:  #141210;
   --beige: #B08B3C;
+  --ok:    #4F7A3C;
   --muted: #6E675C;
   --dim:   #9A9081;
 }
 :root[data-theme="light"] #app::before {
-  background: radial-gradient(120% 66% at 50% 48%, rgba(255, 255, 255, .8), transparent 70%);
+  background:
+    radial-gradient(115% 62% at 50% 40%, rgba(255, 255, 255, .8), transparent 66%),
+    radial-gradient(85% 48% at 16% 102%, rgba(255, 255, 255, .45), transparent 70%);
+}
+:root[data-theme="light"] #app::after {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E") repeat left top / 240px 240px,
+    radial-gradient(135% 105% at 50% 46%, transparent 55%, rgba(31, 27, 21, .085) 100%);
 }
 :root[data-theme="light"] .sheet-backdrop { background: rgba(244, 241, 235, .8); }
 
 * { box-sizing: border-box; }
+::selection { background: var(--beige); color: #060605; }
 
 html, body { height: 100%; margin: 0; overflow: hidden; }
 
@@ -97,11 +107,23 @@ button {
   overflow: hidden;
   background: var(--bg);
 }
-/* l'unica llum de tota la pantalla: al centre, quieta */
+/* La profunditat la fa la llum, no el color: una llum principal alta,
+   un contrallum tenue baix, i les vores que cauen a fosc. Tot mate. */
 #app::before {
   content: "";
   position: absolute; inset: 0; z-index: 0;
-  background: radial-gradient(120% 66% at 50% 48%, rgba(255, 255, 255, .055), transparent 70%);
+  background:
+    radial-gradient(115% 62% at 50% 40%, rgba(255, 255, 255, .065), transparent 66%),
+    radial-gradient(85% 48% at 16% 102%, rgba(255, 255, 255, .03), transparent 70%);
+  pointer-events: none;
+}
+#app::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 0;
+  /* el gra fa el mate de debo: sense ell, el negre es un degradat digital */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E") repeat left top / 240px 240px,
+    radial-gradient(135% 105% at 50% 46%, transparent 52%, rgba(0, 0, 0, .5) 100%);
   pointer-events: none;
 }
 
@@ -136,7 +158,8 @@ button {
   flex: 1 1 auto; min-height: 0;
   display: flex; flex-direction: column; justify-content: center; gap: 8px;
 }
-.wheel-host { flex: none; padding-top: 14px; }
+.wheel-host { flex: none; padding-top: 14px; transition: opacity .22s ease; }
+#app.deck-moving .wheel-host { opacity: 0; }
 
 /* entrar l'acord: un fil entre els dos pianos. Arrossega i tu
    decideixes quan entra cada nota; enrere, surten. Continu i
@@ -180,19 +203,45 @@ button {
   text-align: center;
 }
 
-/* aparenca: un cercle mig ple, el senyal de sempre per al contrast */
-.look-btn {
-  position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 58px;
+/* practica d'oida: un anell amb el punt al mig */
+.train-btn {
+  position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 104px;
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
 }
-.look-btn i {
+.train-btn i {
+  position: relative;
   width: 17px; height: 17px; border-radius: 50%;
   border: 2px solid var(--dim);
-  background: linear-gradient(90deg, var(--dim) 0 50%, transparent 50% 100%);
 }
-.look-btn:active i { border-color: var(--beige); background: linear-gradient(90deg, var(--beige) 0 50%, transparent 50% 100%); }
+.train-btn i::after {
+  content: ""; position: absolute; inset: 4px;
+  border-radius: 50%; background: var(--beige);
+}
+.train-btn:active i { border-color: var(--beige); }
+
+/* ajustos: un mesclador petit, tres linies amb el seu boto */
+.look-btn {
+  position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 58px;
+  width: 40px; height: 40px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+}
+.look-btn i {
+  position: relative;
+  width: 18px; height: 2px; background: var(--dim);
+}
+.look-btn i::after {
+  content: ""; position: absolute; top: -2px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--dim);
+}
+.look-btn i:nth-child(1)::after { left: 2px; }
+.look-btn i:nth-child(2)::after { left: 10px; }
+.look-btn i:nth-child(3)::after { left: 5px; }
+.look-btn:active i, .look-btn:active i::after { background: var(--beige); }
 
 /* la icona del pianet lliure: tres tecles, com la de l'app */
 .piano-btn {
@@ -248,11 +297,21 @@ button {
   color: var(--beige);
   border-bottom: 2px solid transparent;
 }
+.line-ext { padding-bottom: 4px; }
 .line-ext.active { border-bottom-color: var(--beige); }
 .chord-line em {
   font-style: normal; font-family: var(--mono); font-weight: var(--w-caps);
   letter-spacing: .1em; text-transform: none; color: var(--muted);
 }
+
+/* el rètol d'estrena: fins al primer canvi d'acord */
+.coach {
+  margin-top: 10px;
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim);
+  animation: coach-in 1s ease .8s both;
+}
+@keyframes coach-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------------- diagramas ---------------- */
 .diagram { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; }
@@ -291,7 +350,14 @@ button {
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  padding: 2px calc(50% - var(--wh-w) / 2) 0;
+  /* el gest de la roda es de la roda: nomes pan horitzontal, amb un
+     coixi interior perque el limit fisic no coincideixi mai amb una
+     peca (al limit es on el navegador cedeix el gest a la pagina) */
+  touch-action: pan-x;
+  padding: 2px calc(50% - var(--wh-w) / 2 + 46px) 0;
+  /* les vores es fonen: se'n va abans de sortir */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
 }
 .wheel::-webkit-scrollbar { display: none; }
 
@@ -299,21 +365,31 @@ button {
   flex: 0 0 var(--wh-w); width: var(--wh-w);
   scroll-snap-align: center;
   appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 11px;
   color: var(--text);
-  transform-origin: 50% 24%;
+  transform-origin: 50% 560px;  /* el centre del dial, ben avall */
   will-change: transform, opacity;
 }
 .wh-item b {
-  font-family: var(--mono); font-size: 1.2rem; font-weight: var(--w-caps);
+  font-family: var(--mono); font-size: 1.35rem; font-weight: var(--w-caps);
   letter-spacing: -.02em; line-height: 1; white-space: nowrap;
 }
 .wh-item span {
-  font-size: .55rem; font-weight: var(--w-caps); letter-spacing: .14em;
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em;
   text-transform: uppercase; color: var(--muted);
   text-align: center; line-height: 1.25;
+  transition: opacity .18s ease;
 }
+/* els veins nomes diuen el simbol; la descripcio es de la triada */
+.wh-item:not(.on) span { opacity: 0; }
 .wh-item.on span { color: var(--beige); }
+/* la peca triada duu el subratllat de la casa */
+.wh-item.on b { position: relative; }
+.wh-item.on b::after {
+  content: ""; position: absolute;
+  left: -.14em; right: -.02em; bottom: -7px; height: 3px;
+  background: var(--beige);
+}
 /* flechas tipográficas: sin caja, solo el glifo */
 /* ---------------- desenfoque al cambiar ---------------- */
 .fx-out { animation: fx-out .13s ease-in both; will-change: filter, opacity; }
@@ -361,12 +437,31 @@ button {
 @keyframes sheet-out { to { opacity: 0; filter: blur(10px); } }
 
 /* l'aparenca: dues seccions amb el seu retol, mateixa tipografia */
-/* dues seccions, una sota l'altra i ben separades: a dalt el color,
-   a baix la lletra. Cada opcio en la seva propia linia. */
-.sheet[data-kind="look"] .opt-grid { grid-template-columns: 1fr; gap: 22px; }
-.sheet[data-kind="look"] .opt-grid + .opt-grid { margin-top: 52px; }
-.sheet[data-kind="look"] .opt { padding: 6px 2px; }
-.sheet[data-kind="look"] .opt-big { font-size: 1.9rem; }
+/* Els ajustos: la icona al mig d'un filet, i a sota les opcions en
+   horitzontal.  ----- icona -----  */
+.sheet[data-kind="look"] .grp + .grp { margin-top: 36px; }
+.grp-head {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 10px;
+}
+.grp-head::before, .grp-head::after {
+  content: ""; flex: 1 1 auto; height: 1px;
+  background: var(--line);
+}
+.grp-icon {
+  flex: none;
+  font-family: var(--sans); font-size: 1.25rem; font-weight: 700;
+  color: var(--dim);
+}
+.sheet[data-kind="look"] .opt-grid {
+  display: flex; flex-wrap: wrap;
+  justify-content: space-around; align-items: baseline;
+  gap: 0 6px; row-gap: 2px;
+  margin: 0; min-width: 0;
+}
+.sheet[data-kind="look"] .opt { padding: 9px 4px; }
+.sheet[data-kind="look"] .opt-big { font-size: 1.1rem; white-space: nowrap; }
+.sheet[data-kind="look"] .opt-grid.fonts .opt-big { font-size: 1rem; }
 /* cada lletra es mostra amb la seva propia lletra */
 .opt.f-outfit .opt-big { font-family: "Outfit", sans-serif; font-weight: 900; }
 .opt.f-fraunces .opt-big { font-family: "Fraunces", serif; font-weight: 900; }
@@ -396,10 +491,12 @@ button {
 .opt-grid.exts.tier3 .opt-big { font-size: .95rem; }
 
 .opt[aria-pressed="true"] { color: var(--text); }
-.opt[aria-pressed="true"] .opt-big {
-  text-decoration-line: underline;
-  text-decoration-thickness: 3px;
-  text-underline-offset: 7px;
+/* el subratllat de la casa: gruixut i amb el peu sortint per l'esquerra */
+.opt[aria-pressed="true"] .opt-big { position: relative; }
+.opt[aria-pressed="true"] .opt-big::after {
+  content: ""; position: absolute;
+  left: -.16em; right: -.02em; bottom: -9px; height: 3px;
+  background: currentColor;
 }
 .sheet[data-kind="ext"] .opt[aria-pressed="true"] { color: var(--beige); }
 .opt:active .opt-big { color: var(--text); }
@@ -453,12 +550,115 @@ button {
 }
 .mic-btn {
   appearance: none; border: 0; background: none; cursor: pointer;
-  margin-top: 14px; padding: 8px 4px;
+  margin-top: 14px; padding: 8px 4px 8px calc(4px + .18em);
   color: var(--beige);
   font-size: .66rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
-  border-bottom: 2px solid var(--beige);
+  border-bottom: 3px solid var(--beige);
 }
 .mic-btn[hidden] { display: none; }
+
+/* ---------------- practica d'oida: la seva pantalla ---------------- */
+.pr-wrap {
+  position: fixed; inset: 0; z-index: 40;
+  background: var(--bg);
+  animation: fade-in .2s ease both;
+}
+.pr-wrap.closing { animation: fade-out .18s ease both; }
+.pr-close { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 8px; z-index: 4; }
+
+.pr-deck {
+  position: absolute; inset: 0;
+  display: flex;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.pr-deck::-webkit-scrollbar { display: none; }
+.pr-panel {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: calc(56px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* el titol del joc: respira un moment i s'esvaeix */
+.pr-intro {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px;
+  padding: 0 34px; text-align: center;
+  background: var(--bg);
+  pointer-events: none;
+  opacity: .96;
+  transition: opacity .5s ease;
+}
+.pr-intro.hide { opacity: 0; }
+.pr-intro b {
+  font-family: var(--sans); font-size: 2rem; font-weight: var(--w-big);
+  letter-spacing: -.02em; color: var(--text);
+}
+.pr-intro span { font-size: .82rem; color: var(--muted); max-width: 34ch; line-height: 1.5; }
+
+.pr-name {
+  min-height: 52px;
+  display: flex; align-items: flex-end; justify-content: center;
+  font-family: var(--sans); font-size: 2.7rem; font-weight: var(--w-big);
+  letter-spacing: -.02em; line-height: 1;
+  color: var(--beige);
+}
+.pr-name.ok { color: var(--ok); animation: ear-pop .32s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes ear-pop {
+  from { transform: scale(.92); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+.pr-panel .tool-hint { min-height: 18px; margin: 8px 0 18px; }
+.pr-kb {
+  width: 100%; max-width: 520px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pr-kb svg { width: 100%; height: auto; display: block; }
+.pr-kb svg rect { transition: fill .07s linear, stroke .07s linear; }
+.pr-kb svg g[data-midi] { transition: transform .09s ease; }
+
+/* els botons: glifs i prou */
+.pr-row { display: flex; align-items: center; gap: 22px; margin-top: 22px; }
+.pr-btn {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  width: 46px; height: 46px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+  font-family: var(--mono); font-size: 1.25rem; font-weight: 700;
+}
+.pr-btn:active { color: var(--beige); }
+/* en acabar, la fletxa s'encen i creix un pel: ara mana ella */
+.pr-btn.on {
+  color: var(--beige);
+  transform: scale(1.3);
+  animation: ear-pop .32s cubic-bezier(.2,.8,.2,1) both;
+}
+/* l'orella: un cercle que es buida de beix mentre sona */
+.pr-ear {
+  position: relative;
+  border: 2px solid var(--beige); border-radius: 50%;
+  width: 40px; height: 40px;
+  overflow: hidden;
+}
+.pr-ear-fill {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 0;
+  background: var(--beige);
+}
+/* la nota de dins: que es vegi que aixo sona */
+.pr-ear-note {
+  position: relative;
+  font-family: var(--mono); font-size: 1.05rem; font-weight: 700;
+  color: var(--text);
+  mix-blend-mode: difference;   /* clara sobre negre, fosca sobre el beix */
+}
+:root[data-theme="light"] .pr-ear-note { mix-blend-mode: normal; color: #141210; }
+/* la meva seleccio: tres tecletes */
+.pr-sel { gap: 2.5px; }
+.pr-sel i { width: 4px; height: 15px; background: currentColor; }
 
 /* tempo: el numero mana; tocar engega, arrossegar canvia */
 .mn-bpm {
@@ -491,7 +691,8 @@ button {
   margin-top: 24px; padding: 6px 2px;
   font-family: var(--mono); font-size: 1rem; font-weight: 700;
   color: var(--beige);
-  border-bottom: 2px solid var(--beige);
+  padding: 0 0 6px .2em;
+  border-bottom: 3px solid var(--beige);
 }
 .opt-grid.meters.tier1 { grid-template-columns: repeat(2, 1fr); }
 .opt-grid.meters.tier2 { grid-template-columns: repeat(3, 1fr); }
@@ -511,17 +712,24 @@ button {
   display: flex; flex-direction: column;
 }
 .fp-bar {
-  flex: none; height: 62px;
-  display: flex; align-items: flex-end; justify-content: center;
-  padding-bottom: 6px;
+  position: relative;
+  flex: none; height: 64px;
+  display: flex; align-items: center; justify-content: flex-start;
+  padding-left: 4px;
 }
 .fp-close {
   appearance: none; border: 0; background: none; cursor: pointer;
-  width: 64px; height: 48px; padding: 0;
-  color: var(--dim);
-  font-family: var(--sans); font-size: 2.5rem; font-weight: 400; line-height: 1;
+  width: 84px; height: 60px; padding: 0;
+  color: var(--muted);
+  font-family: var(--sans); font-size: 2.7rem; font-weight: 600; line-height: 1;
 }
 .fp-close:active { color: var(--beige); }
+/* el nom del que sona, si el pianet el reconeix */
+.fp-name {
+  position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+  font-family: var(--mono); font-size: .95rem; font-weight: 700;
+  color: var(--beige);
+}
 /* El teclat es mes ample que la pantalla. Res de scroll natiu: dins
    d'un contenidor girat, el navegador arbitra els gestos en eixos de
    pantalla i es queda els tocs de les tecles. touch-action: none = cada
@@ -536,7 +744,8 @@ button {
 }
 .fp-kb svg { width: auto; display: block; flex: none; }
 /* la tecla s'enfonsa un pel en polsar-la */
-.fp-kb svg rect { transition: fill .06s linear; }
+.fp-kb svg rect, .ear-kb svg rect { transition: fill .07s linear, stroke .07s linear; }
+.fp-kb svg g[data-midi], .ear-kb svg g[data-midi] { transition: transform .09s ease; }
 /* on ets de les quatre octaves: nomes es veu mentre arrossegues */
 .fp-pos {
   position: absolute; left: 18%; right: 18%; bottom: 9px; height: 3px;
@@ -561,6 +770,7 @@ button {
   .pinned-top .pinned-inner { padding: calc(34px + env(safe-area-inset-top)) var(--pad) 10px; }
   .piano-btn { top: calc(10px + env(safe-area-inset-top)); }
   .look-btn { top: calc(10px + env(safe-area-inset-top)); }
+  .train-btn { top: calc(10px + env(safe-area-inset-top)); }
   .kb-head { font-size: .52rem; }
 
   /* tot l'ample de pantalla */
@@ -575,6 +785,11 @@ button {
   .panel[data-ins="piano"] .kb-slot { flex: 1 1 42%; min-width: 0; }
   .panel[data-ins="piano"] .arp-host { order: 3; flex: 1 1 100%; }
   .panel[data-ins="piano"] .kb { min-width: 0; }
+
+  .pr-kb { max-width: min(680px, 86vw); }
+  .pr-name { min-height: 40px; font-size: 2rem; }
+  .pr-panel .tool-hint { margin: 4px 0 10px; }
+  .pr-row { margin-top: 10px; }
 
   /* el mastil ajagut pot ser ben ample */
   .panel[data-ins="guitar"] .diagram.narrow { max-width: min(620px, 88vw); }

@@ -81,6 +81,7 @@
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') { return; }
+    if (prEl) { closePractice(); return; }
     if (fpEl) { closeFreePiano(); return; }
     if (overlayEl) { closeOverlay(); }
   });
@@ -408,8 +409,16 @@
     }
 
     /* roda a l'escriptori */
+    var coach = null;
+    try {
+      if (!global.localStorage.getItem('ac.mncoach')) {
+        coach = h('div', { class: 'coach', 'aria-hidden': 'true',
+          text: 'pica al ritme per marcar el tempo' });
+      }
+    } catch (e) { /* mode privat */ }
+
     var el = h('div', { class: 'tool-inner', 'data-tool': 'metronome' }, [
-      bpmEl, beatsEl, meterBtn
+      bpmEl, beatsEl, meterBtn, coach
     ]);
     el.addEventListener('wheel', function (ev) {
       if (ev.preventDefault) { ev.preventDefault(); }
@@ -421,6 +430,12 @@
        El número fa un batec a cada toc. */
     var taps = [];
     el.addEventListener('pointerdown', function (ev) {
+      if (coach) {
+        /* apres: el retol se'n va i no torna */
+        if (coach.parentNode) { coach.parentNode.removeChild(coach); }
+        coach = null;
+        try { global.localStorage.setItem('ac.mncoach', '1'); } catch (e) { /* res */ }
+      }
       if (ev.target && ev.target.closest &&
           ev.target.closest('.mn-bpm, .mn-meter')) { return; }
       var now = global.performance.now();
@@ -450,6 +465,41 @@
   }
 
   /* ================================================================
+     RECONEIXER ACORDS: donades unes notes, el simbol. Es prova cada
+     nota com a fonamental (primer el baix) contra el diccionari de
+     Theory; si el baix no es la fonamental, s'escriu C/E.
+     ================================================================ */
+  function nameChord(midis) {
+    if (!midis || midis.length < 3) { return ''; }
+    var pcs = [];
+    midis.forEach(function (m) {
+      var pc = Theory.mod12(m);
+      if (pcs.indexOf(pc) === -1) { pcs.push(pc); }
+    });
+    var bass = Theory.mod12(Math.min.apply(null, midis));
+    var roots = [bass].concat(pcs.filter(function (x) { return x !== bass; }));
+    var ids = Object.keys(Theory.CHORDS);
+    for (var r = 0; r < roots.length; r++) {
+      for (var i = 0; i < ids.length; i++) {
+        var t = Theory.CHORDS[ids[i]];
+        var tp = [];
+        t.steps.forEach(function (st) {
+          var pc = Theory.mod12(roots[r] + st);
+          if (tp.indexOf(pc) === -1) { tp.push(pc); }
+        });
+        if (tp.length !== pcs.length) { continue; }
+        var all = tp.every(function (pc) { return pcs.indexOf(pc) !== -1; });
+        if (!all) { continue; }
+        /* l'ortografia segueix la tonalitat trobada: Eb/Bb, no D#/A# */
+        var fl = Theory.keyPrefersFlats ? Theory.keyPrefersFlats(roots[r], ids[i]) : false;
+        var name = Theory.pcName(roots[r], { flats: fl }) + (t.suffix || '');
+        return roots[r] === bass ? name : name + '/' + Theory.pcName(bass, { flats: fl });
+      }
+    }
+    return '';
+  }
+
+  /* ================================================================
      PIANET LLIURE: el mobil sencer es un piano (girat 90 graus si el
      tens en vertical). Quatre octaves amb scroll lateral; a cada Do,
      el seu indicador d'octava. El cos de la tecla polsa (i mante
@@ -461,12 +511,23 @@
   var fpPaint = null;
   var fpVoices = {};
 
+  var fpNameEl = null;
+
+  function fpNamePaint() {
+    if (!fpNameEl) { return; }
+    var latched = Object.keys(fpVoices)
+      .filter(function (m) { return fpVoices[m].latched; })
+      .map(Number);
+    fpNameEl.textContent = nameChord(latched);
+  }
+
   function fpStopAll() {
     Object.keys(fpVoices).forEach(function (m) {
       fpVoices[m].voice.release();
       fpKeyPaint(fpVoices[m].refs, 'off');
       delete fpVoices[m];
     });
+    fpNamePaint();
   }
 
   /* estats de tecla: 'off' (repos), 'held' (polsada: blanca i un pel
@@ -560,12 +621,14 @@
           if (gesture.down < -SWIPE || Math.abs(gesture.down) < SWIPE) {
             fpDrop(midi, refs);
           }
+          fpNamePaint();
           return;
         }
         var a = fpVoices[midi];
         if (!a) { return; }
         if (gesture.down > SWIPE) { a.latched = true; }   /* queda sonant */
         else { fpDrop(midi, refs); }
+        fpNamePaint();
       }
     };
 
@@ -588,10 +651,12 @@
       posTimer = global.setTimeout(function () { pos.style.opacity = '0'; }, 700);
     }
 
+    fpNameEl = h('div', { class: 'fp-name', 'aria-live': 'polite' });
     var rotor = h('div', { class: 'fp-rotor' }, [
       h('div', { class: 'fp-bar' }, [
+        fpNameEl,
         h('button', {
-          class: 'fp-close', type: 'button', text: '\u00D7', 'aria-label': 'Tancar el piano',
+          class: 'fp-close', type: 'button', text: '\u2190', 'aria-label': 'Tornar',
           onclick: closeFreePiano
         })
       ]),
@@ -682,9 +747,521 @@
     Sound.ready();
   }
 
+  /* ================================================================
+     PRACTICA D'OIDA: una pantalla propia amb tres jocs que es canvien
+     lliscant. En entrar a un joc, el titol i la descripcio respiren un
+     moment i s'esvaeixen. Sense punts: nomes orella.
+     ================================================================ */
+  var prEl = null;
+  var prGames = [];
+  var prActive = -1;
+  var prIntroTimer = null;
+
+  var PR_FROM = 48;        /* C3; dues octaves fins C5 */
+  var PR_HEAR = 3200;      /* ms que dura l'escolta (i el buidat del cercle) */
+
+  function prCols() {
+    var light = false;
+    try {
+      light = document.documentElement.getAttribute('data-theme') === 'light';
+    } catch (e) { /* sense arrel */ }
+    return light
+      ? { sel: '#CFA24A', ok: '#4F7A3C', bad: '#8A8377' }
+      : { sel: '#DCC9A6', ok: '#93B478', bad: '#66605A' };
+  }
+
+  function prPaintKey(refs, color) {
+    if (!refs) { return; }
+    refs.rect.setAttribute('fill', color || refs.baseFill);
+    if (refs.black) {
+      refs.rect.setAttribute('stroke', color ? '#060605' : refs.baseStroke);
+      refs.rect.setAttribute('stroke-width', color ? 2.4 : refs.baseStrokeW);
+    }
+    (refs.key || refs.rect).setAttribute('transform', color ? 'translate(0 2)' : '');
+  }
+
+  /* el teclat de practica: partit en dues octaves en vertical, sencer
+     en apaisat. refsAll es reomple a cada pintada. */
+  var PR_WHITE = [0, 2, 4, 5, 7, 9, 11];
+
+  function prKb(kbHost, handlers, refsAll, startAt) {
+    kbHost.innerHTML = '';
+    Object.keys(refsAll).forEach(function (k) { delete refsAll[k]; });
+    /* la finestra comenca a la blanca de sota de startAt (o C3) i fa
+       quinze blanques; en vertical es parteix per la vuitena */
+    var w0 = startAt === undefined ? PR_FROM : startAt;
+    while (PR_WHITE.indexOf(Theory.mod12(w0)) === -1) { w0 -= 1; }
+    var w7 = w0, n = 1, m = w0;
+    while (n < 8) {
+      m += 1;
+      if (PR_WHITE.indexOf(Theory.mod12(m)) !== -1) { n += 1; w7 = m; }
+    }
+    var land = !!(global.matchMedia && global.matchMedia('(max-height: 480px)').matches);
+    var rows = land ? [[w0, 15]] : [[w0, 8], [w7, 8]];
+    rows.forEach(function (r) {
+      var svg = Piano.render({
+        from: r[0], keys: r[1], fluid: true,
+        keyHandlers: handlers, labels: 'none', footLabels: 'octaves'
+      });
+      Object.keys(svg.keyRefs).forEach(function (m) { refsAll[m] = svg.keyRefs[m]; });
+      kbHost.appendChild(svg);
+    });
+  }
+
+  /* --- els botons, senzills: glifs i prou --- */
+  function prGlyph(txt, label, onclick) {
+    return h('button', {
+      class: 'pr-btn', type: 'button', text: txt, 'aria-label': label, onclick: onclick
+    });
+  }
+
+  /* l'orella: un cercle que es va buidant de beix mentre sona; cada toc
+     el reomple, aixi que si el vas tocant no calla mai */
+  function prEarBtn(label, onTap) {
+    var fill = h('i', { class: 'pr-ear-fill' });
+    var note = h('span', { class: 'pr-ear-note', text: '♪' });
+    var btn = h('button', {
+      class: 'pr-btn pr-ear', type: 'button', 'aria-label': label, onclick: onTap
+    }, [fill, note]);
+    btn._fill = fill;
+    return btn;
+  }
+
+  function prDrain(btn, ms) {
+    var f = btn && btn._fill;
+    if (!f) { return; }
+    f.style.transition = 'none';
+    f.style.height = '100%';
+    void (btn.offsetWidth);   /* reflow: que el 100% quedi pintat */
+    f.style.transition = 'height ' + ms + 'ms linear';
+    f.style.height = '0%';
+  }
+
+  var IVALS = ['un\u00edson', '2a menor', '2a major', '3a menor', '3a major',
+    '4a justa', '4a augmentada', '5a justa', '6a menor', '6a major',
+    '7a menor', '7a major', '8a'];
+
+  function prNoteName(midi) {
+    return Theory.pcName(midi) + (Math.floor(midi / 12) - 1);
+  }
+
+  /* un cor de veus amb un sol temporitzador: tocar l'orella allarga */
+  function mkVoiceBox() {
+    var voices = [], timer = null;
+    return {
+      start: function (midis) {
+        this.stop();
+        Sound.ready();
+        midis.forEach(function (m) { voices.push(Sound.padOn(m)); });
+      },
+      hold: function (ms, box) {
+        if (timer && global.clearTimeout) { global.clearTimeout(timer); }
+        timer = global.setTimeout(function () { box.stop(); }, ms);
+      },
+      sounding: function () { return voices.length > 0; },
+      stop: function () {
+        voices.forEach(function (v) { v.release(); });
+        voices = [];
+      }
+    };
+  }
+
+  /* ---------------- joc 1: construeix l'acord ---------------- */
+  function gameBuild() {
+    var round = null, refsAll = {}, lastPick = '';
+    var box = mkVoiceBox();
+    var api = {
+      title: 'Construeix l\u2019acord',
+      desc: 'Sona un acord, de vegades invertit. La fonamental ja la tens marcada: troba la resta.'
+    };
+
+    var nameEl = h('div', { class: 'pr-name' });
+    var hintEl = h('div', { class: 'tool-hint' });
+    var kbHost = h('div', { class: 'pr-kb' });
+
+    function pool() {
+      var types = (global.ChordData && global.ChordData.types) || [];
+      var out = types.filter(function (t) { return (t.tier || 3) <= 2; })
+        .map(function (t) { return t.id; })
+        .filter(function (id) { return Theory.CHORDS[id]; });
+      return out.length ? out : Object.keys(Theory.CHORDS);
+    }
+
+    /* inv = quantes notes de baix pugen una octava (0 = fonamental) */
+    function voicing(rootPc, typeId, inv) {
+      var steps = Theory.CHORDS[typeId].steps;
+      return steps.map(function (st, i) {
+        return PR_FROM + rootPc + st + (i < (inv || 0) ? 12 : 0);
+      }).sort(function (a, b) { return a - b; });
+    }
+
+    function chordMidis() { return round.midis; }
+
+    function hear() {
+      if (!round) { return; }
+      if (!box.sounding()) { box.start(chordMidis()); }
+      box.hold(PR_HEAR, box);
+      prDrain(earBtn, PR_HEAR);
+    }
+
+    function mySelection() {
+      var sel = Object.keys(round ? round.found : {}).map(Number);
+      if (!sel.length) { return; }
+      Sound.ready();
+      var vs = sel.map(function (m) { return Sound.padOn(m); });
+      global.setTimeout(function () { vs.forEach(function (v) { v.release(); }); }, 1200);
+    }
+
+    function repaint() {
+      var c = prCols();
+      Object.keys(refsAll).forEach(function (m) {
+        var on = round && round.found[m];
+        prPaintKey(refsAll[m], on ? (round.done ? c.ok : c.sel) : null);
+      });
+    }
+
+    function setRound(rootPc, typeId, inv) {
+      inv = inv || 0;
+      var rootMidi = PR_FROM + rootPc + (inv > 0 ? 12 : 0);
+      round = {
+        rootPc: rootPc, typeId: typeId, inv: inv,
+        midis: voicing(rootPc, typeId, inv),
+        rootMidi: rootMidi,
+        found: {}, done: false
+      };
+      /* la fonamental sempre ve donada: marcada des del principi */
+      round.found[rootMidi] = true;
+      nameEl.textContent = '';
+      nameEl.classList.remove('ok');
+      hintEl.textContent = '';
+      nextBtn.classList.remove('on');
+      /* el teclat s'ancora a l'acord: sempre hi cap (i de pas, pista) */
+      api.paintKb();
+    }
+
+    function finish(earned) {
+      round.done = true;
+      var t = Theory.CHORDS[round.typeId];
+      var fl = Theory.keyPrefersFlats
+        ? Theory.keyPrefersFlats(round.rootPc, round.typeId) : false;
+      var name = Theory.pcName(round.rootPc, { flats: fl }) + (t.suffix || '');
+      if (round.inv > 0) {
+        name += '/' + Theory.pcName(Theory.mod12(round.midis[0]), { flats: fl });
+      }
+      api._lastSolved = name;
+      nameEl.textContent = name;
+      if (earned) { nameEl.classList.add('ok'); }
+      hintEl.textContent = (t.name || '').toLowerCase();
+      repaint();
+      /* res no passa sol: pots tornar a escoltar-lo; la fletxa, encesa,
+         espera que siguis tu qui digui prou */
+      nextBtn.classList.add('on');
+    }
+
+    function reveal() {
+      if (!round || round.done) { return; }
+      /* la resposta: es completa la seleccio i es diu l'acord */
+      round.midis.forEach(function (m) { round.found[m] = true; });
+      finish(false);
+    }
+
+    function next() {
+      var ids = pool(), id, root, key;
+      do {
+        id = ids[Math.floor(Math.random() * ids.length)];
+        root = Math.floor(Math.random() * 12);
+        key = id + ':' + root;
+      } while (key === lastPick && ids.length > 1);
+      lastPick = key;
+      box.stop();
+      var inv = Math.floor(Math.random() * Theory.CHORDS[id].steps.length);
+      setRound(root, id, inv);
+      hear();
+    }
+
+    function onKey(midi, refs) {
+      if (!round) { return; }
+      var v = Sound.padOn(midi);
+      global.setTimeout(function () { v.release(); }, 700);
+      if (round.done) { return; }
+      var c = prCols();
+      /* nomes val la tecla que sona de debo: una octavada no compta */
+      if (round.midis.indexOf(midi) !== -1) {
+        round.found[midi] = true;
+        prPaintKey(refs, c.sel);
+        var got = Object.keys(round.found).length;
+        if (got === round.midis.length) { finish(true); }
+        else { hintEl.textContent = got + ' / ' + round.midis.length + ' notes'; }
+      } else {
+        prPaintKey(refs, c.bad);
+        global.setTimeout(function () {
+          if (round && !round.found[midi]) { prPaintKey(refs, null); }
+        }, 260);
+      }
+    }
+
+    var handlers = { press: onKey, release: function () {}, move: null };
+    var earBtn = prEarBtn('Torna-la a sentir', hear);
+    var nextBtn = prGlyph('\u2192', 'Un acord nou', next);
+    var selBtn = h('button', {
+      class: 'pr-btn pr-sel', type: 'button',
+      'aria-label': 'Escoltar la meva selecci\u00f3', onclick: mySelection
+    }, [h('i'), h('i'), h('i')]);
+
+    api.el = h('div', { class: 'pr-panel', 'data-game': 'build' }, [
+      nameEl, hintEl, kbHost,
+      h('div', { class: 'pr-row' }, [
+        earBtn, selBtn,
+        prGlyph('?', 'La resposta', reveal),
+        nextBtn
+      ])
+    ]);
+    api.paintKb = function () {
+      var anchor = round ? Math.min.apply(null, round.midis) - 3 : undefined;
+      prKb(kbHost, handlers, refsAll, anchor);
+      repaint();
+    };
+    api.enter = function () { if (!round) { next(); } else { hear(); } };
+    api.leave = function () { box.stop(); };
+    api.debug = {
+      force: function (rootPc, typeId, inv) { setRound(rootPc, typeId, inv); },
+      tap: function (m) { onKey(m, refsAll[m]); },
+      refs: function (m) { return refsAll[m]; },
+      reveal: reveal,
+      state: function () {
+        return round ? {
+          found: Object.keys(round.found).length,
+          total: round.midis.length, done: round.done,
+          rootMidi: round.rootMidi, midis: round.midis.slice(),
+          lastSolved: api._lastSolved || ''
+        } : null;
+      }
+    };
+    api.el._debug = api.debug;
+    return api;
+  }
+
+  /* ---------------- jocs 2 i 3: sobre una referencia ---------------- */
+  function gameRef(mode) {
+    /* mode 'find': sona una nota misteriosa i l'has de trobar.
+       mode 'paint': et diuen el grau i l'has de pintar (canta'l abans). */
+    var round = null, refsAll = {};
+    var box = mkVoiceBox();
+    var api = mode === 'find'
+      ? { title: 'Quina nota sona?', desc: 'Primer la refer\u00e8ncia, despr\u00e9s la nota misteriosa: troba-la.' }
+      : { title: 'Pinta el grau', desc: 'Des de la refer\u00e8ncia, pinta el grau demanat. Prova de cantar-lo abans.' };
+
+    var nameEl = h('div', { class: 'pr-name' });
+    var hintEl = h('div', { class: 'tool-hint' });
+    var kbHost = h('div', { class: 'pr-kb' });
+
+    function repaint() {
+      var c = prCols();
+      Object.keys(refsAll).forEach(function (m) {
+        var midi = Number(m);
+        var color = null;
+        if (round && midi === round.ref) { color = c.sel; }
+        if (round && round.done && midi === round.target) { color = c.ok; }
+        prPaintKey(refsAll[m], color);
+      });
+    }
+
+    function hear() {
+      if (!round) { return; }
+      Sound.ready();
+      box.start([round.ref]);
+      if (mode === 'find') {
+        /* la referencia un moment, i despres la misteriosa */
+        global.setTimeout(function () {
+          box.stop();
+          box.start([round.target]);
+          box.hold(1600, box);
+        }, 900);
+        prDrain(earBtn, 2500);
+      } else {
+        box.hold(1400, box);
+        prDrain(earBtn, 1400);
+      }
+    }
+
+    function setRound(ref, iv) {
+      round = { ref: ref, iv: iv, target: ref + iv, done: false };
+      nameEl.classList.remove('ok');
+      nextBtn.classList.remove('on');
+      if (mode === 'paint') {
+        nameEl.textContent = IVALS[iv];
+        hintEl.textContent = 'prova de cantar-la abans de tocar-la';
+      } else {
+        nameEl.textContent = '';
+        hintEl.textContent = 'la refer\u00e8ncia \u00e9s ' + prNoteName(ref);
+      }
+      repaint();
+    }
+
+    function finish(earned) {
+      round.done = true;
+      api._lastSolved = IVALS[round.iv];
+      nameEl.textContent = IVALS[round.iv];
+      if (earned) { nameEl.classList.add('ok'); }
+      hintEl.textContent = 'era ' + prNoteName(round.target)
+        + ' \u00b7 des de ' + prNoteName(round.ref);
+      repaint();
+      nextBtn.classList.add('on');
+    }
+
+    function reveal() {
+      if (!round || round.done) { return; }
+      finish(false);
+    }
+
+    function next() {
+      box.stop();
+      var ref = PR_FROM + Math.floor(Math.random() * 13);       /* C3..C4 */
+      var iv = 1 + Math.floor(Math.random() * 12);              /* 2a m .. 8a */
+      setRound(ref, iv);
+      hear();
+    }
+
+    function onKey(midi, refs) {
+      if (!round) { return; }
+      var v = Sound.padOn(midi);
+      global.setTimeout(function () { v.release(); }, 700);
+      if (round.done || midi === round.ref) { return; }
+      var c = prCols();
+      if (midi === round.target) { finish(true); }
+      else {
+        prPaintKey(refs, c.bad);
+        global.setTimeout(function () {
+          if (round && midi !== round.ref) { prPaintKey(refs, null); }
+        }, 260);
+        repaint();
+      }
+    }
+
+    var handlers = { press: onKey, release: function () {}, move: null };
+    var earBtn = prEarBtn('Torna-la a sentir', hear);
+    var nextBtn = prGlyph('\u2192', 'Una altra', next);
+
+    api.el = h('div', { class: 'pr-panel', 'data-game': mode }, [
+      nameEl, hintEl, kbHost,
+      h('div', { class: 'pr-row' }, [
+        earBtn,
+        prGlyph('?', 'La resposta', reveal),
+        nextBtn
+      ])
+    ]);
+    api.paintKb = function () { prKb(kbHost, handlers, refsAll); repaint(); };
+    api.enter = function () { if (!round) { next(); } else { hear(); } };
+    api.leave = function () { box.stop(); };
+    api.debug = {
+      force: function (ref, iv) { setRound(ref, iv); },
+      tap: function (m) { onKey(m, refsAll[m]); },
+      refs: function (m) { return refsAll[m]; },
+      state: function () {
+        return round ? {
+          ref: round.ref, target: round.target, done: round.done,
+          lastSolved: api._lastSolved || ''
+        } : null;
+      }
+    };
+    api.el._debug = api.debug;
+    return api;
+  }
+
+  /* ---------------- la pantalla de practica ---------------- */
+  var prIntroEl = null;
+
+  function prShowIntro(game) {
+    if (!prIntroEl) { return; }
+    prIntroEl.querySelectorAll ? null : null;
+    prIntroEl.children[0].textContent = game.title;
+    prIntroEl.children[1].textContent = game.desc;
+    prIntroEl.classList.remove('hide');
+    if (prIntroTimer && global.clearTimeout) { global.clearTimeout(prIntroTimer); }
+    prIntroTimer = global.setTimeout(function () {
+      prIntroEl.classList.add('hide');
+    }, 2100);
+  }
+
+  function prActivate(idx) {
+    if (idx === prActive || !prGames[idx]) { return; }
+    if (prGames[prActive]) { prGames[prActive].leave(); }
+    prActive = idx;
+    var g = prGames[idx];
+    g.paintKb();
+    g.enter();
+    prShowIntro(g);
+  }
+
+  function closePractice() {
+    var node = prEl;
+    prEl = null;
+    prGames.forEach(function (g) { g.leave(); });
+    prGames = [];
+    prActive = -1;
+    if (prPaintAll) { global.removeEventListener('resize', prPaintAll); prPaintAll = null; }
+    if (!node) { return; }
+    if (reducedMotion()) {
+      if (node.parentNode) { node.parentNode.removeChild(node); }
+      return;
+    }
+    node.classList.add('closing');
+    global.setTimeout(function () {
+      if (node.parentNode) { node.parentNode.removeChild(node); }
+    }, 190);
+  }
+
+  var prPaintAll = null;
+
+  function openPractice() {
+    closePractice();
+    prGames = [gameBuild(), gameRef('find'), gameRef('paint')];
+
+    var deck = h('div', { class: 'pr-deck' });
+    prGames.forEach(function (g) { deck.appendChild(g.el); });
+
+    /* lliscar a la dreta canvia de joc; el titol respira i marxa */
+    var raf = false;
+    deck.addEventListener('scroll', function () {
+      if (raf) { return; }
+      raf = true;
+      (global.requestAnimationFrame || global.setTimeout)(function () {
+        raf = false;
+        if (!deck.clientWidth) { return; }
+        var idx = Math.round((deck.scrollLeft || 0) / deck.clientWidth);
+        prActivate(Math.max(0, Math.min(prGames.length - 1, idx)));
+      });
+    });
+
+    prIntroEl = h('div', { class: 'pr-intro' }, [
+      h('b', {}), h('span', {})
+    ]);
+
+    prEl = h('div', {
+      class: 'pr-wrap', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Pr\u00e0ctica d\u2019o\u00efda'
+    }, [
+      deck,
+      prIntroEl,
+      h('button', {
+        class: 'fp-close pr-close', type: 'button', text: '\u2190',
+        'aria-label': 'Tornar', onclick: closePractice
+      })
+    ]);
+    document.body.appendChild(prEl);
+
+    prPaintAll = function () {
+      if (prGames[prActive]) { prGames[prActive].paintKb(); }
+    };
+    global.addEventListener('resize', prPaintAll);
+
+    prActivate(0);
+  }
+
   global.Tools = {
     tuner: tuner,
     metronome: metronome,
+    openPractice: openPractice,
+    closePractice: closePractice,
     openFreePiano: openFreePiano,
     closeOverlay: closeOverlay
   };

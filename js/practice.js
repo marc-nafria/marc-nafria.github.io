@@ -57,13 +57,16 @@
     if (!isNaN(pc) && pc >= 0 && pc < 12) { state.rootPc = pc; }
     var q = read('quality', 'maj');
     if (Theory.CHORDS[q]) { state.quality = q; }
-    var ins = read('ins', 'guitar');
-    state.ins = INSTRUMENTS[ins] ? ins : 'guitar';
+    var ins = read('ins', 'piano');
+    state.ins = INSTRUMENTS[ins] ? ins : 'piano';
     state.theme = read('theme', 'dark') === 'light' ? 'light' : 'dark';
     applyTheme(state.theme);
     var f = read('font', 'outfit');
     state.font = FONTS.some(function (x) { return x.id === f; }) ? f : 'outfit';
     applyFont(state.font);
+    var v = read('voice', 'pad');
+    state.voice = VOICES.some(function (x) { return x.id === v; }) ? v : 'pad';
+    if (global.Sound && Sound.setVoice) { Sound.setVoice(state.voice); }
   }
 
   /* La marca de l'app: tres blanques, dues negres i la tecla alçada.
@@ -91,6 +94,17 @@
     { id: 'instrument', name: 'Instrument', sample: 'Cmaj' }
   ];
 
+  var VOICES = [
+    { id: 'pad', name: 'coixí' },
+    { id: 'ep', name: 'elèctric' }
+  ];
+
+  function setVoicePref(id) {
+    state.voice = id;
+    write('voice', id);
+    if (global.Sound && Sound.setVoice) { Sound.setVoice(id); }
+  }
+
   function applyFont(id) {
     var root = document.documentElement;
     if (!root) { return; }
@@ -101,14 +115,15 @@
   function setTheme(name) {
     state.theme = name === 'light' ? 'light' : 'dark';
     write('theme', state.theme);
-    applyTheme(state.theme);
-    render(false);            /* els diagrames es tornen a dibuixar */
+    /* el canvi de pell fa la mateixa respiracio que un canvi d'acord:
+       desenfocar, girar els colors, tornar a enfocar */
+    change(function () { applyTheme(state.theme); });
   }
 
   function setFont(id) {
     state.font = id;
     write('font', id);
-    applyFont(id);
+    change(function () { applyFont(id); });
   }
 
   /* ---------------- utilidades ---------------- */
@@ -548,7 +563,11 @@
      llisca. La del mig es llegeix neta; les del costat es fan petites,
      es desdibuixen i s'aparten, com una roda que gira. Cap fletxa.
      ---------------------------------------------------------------- */
-  var WH_W = 102;          /* ample d'una peca; el mateix que al CSS */
+  var WH_W = 118;          /* ample d'una peca; el mateix que al CSS */
+  var WH_P = 46;           /* coixi interior: el limit fisic mai no es una peca */
+  var WH_R = 560;          /* el radi del dial, ben gran */
+  /* l'angle per pas: el que fa que la corda de l'arc valgui un pas */
+  var WH_THETA = Math.asin(WH_W / WH_R) * 180 / Math.PI;
   var wheels = {};         /* una roda per instrument, dins de la seva seccio */
   var wheelTimer = null;
 
@@ -556,21 +575,22 @@
     var wheelEl = el;
     if (!wheelEl) { return; }
     var kids = wheelEl.children;
-    var at = (wheelEl.scrollLeft || 0) / WH_W;
+    var at = ((wheelEl.scrollLeft || 0) - WH_P) / WH_W;
     for (var i = 0; i < kids.length; i++) {
       var d = Math.abs(i - at);
-      var near = Math.min(d, 1.8);
-      /* radi tancat: cauen de pressa i s'enfonsen, com una roda que gira.
-         Res de blur: nomes opacitat i mida. */
-      kids[i].style.transform = 'translateY(' + (near * 4.5).toFixed(1) + 'px) '
-        + 'scale(' + (1 - 0.36 * near).toFixed(3) + ')';
-      kids[i].style.opacity = (1 - 0.74 * Math.min(d, 1)).toFixed(3);
+      var off = i - at;
+      /* dial de debo: totes les peces al mateix punt (es desfa el pas
+         de la fila) i despres giren al voltant d'un centre profund; el
+         radi els dona el desplaçament, la inclinacio i la caiguda */
+      kids[i].style.transform = 'translateX(' + (-off * WH_W).toFixed(1) + 'px)'
+        + ' rotate(' + (off * WH_THETA).toFixed(2) + 'deg)';
+      kids[i].style.opacity = (1 - 0.62 * Math.min(d, 1)).toFixed(3);
       kids[i].classList.toggle('on', d < 0.5);
     }
   }
 
   function wheelSettle(el, onChange, current) {
-    var at = Math.round((el.scrollLeft || 0) / WH_W);
+    var at = Math.round(((el.scrollLeft || 0) - WH_P) / WH_W);
     var n = Math.max(0, Math.min(el.children.length - 1, at));
     if (n !== current) { onChange(n); }
   }
@@ -588,15 +608,25 @@
         onclick: function () {
           /* tocar-ne una del costat la porta al centre */
           if (i === d.index) { return; }
-          strip.scrollLeft = i * WH_W;
+          if (strip.scrollTo) { strip.scrollTo({ left: WH_P + i * WH_W, behavior: 'smooth' }); }
+          else { strip.scrollLeft = WH_P + i * WH_W; }
           wheelPaint(strip);
           d.onChange(i);
         }
       }, [h('b', { text: it.title }), h('span', { text: it.sub })]));
     });
 
+    /* un repintat per frame com a molt: el scroll dispara mes
+       esdeveniments que frames i pintar-los tots es malbaratar-los */
+    var rafPending = false;
     strip.addEventListener('scroll', function () {
-      wheelPaint(strip);
+      if (!rafPending) {
+        rafPending = true;
+        (global.requestAnimationFrame || global.setTimeout)(function () {
+          rafPending = false;
+          wheelPaint(strip);
+        });
+      }
       if (wheelTimer && global.clearTimeout) { global.clearTimeout(wheelTimer); }
       wheelTimer = global.setTimeout(function () {
         wheelSettle(strip, d.onChange, d.index);
@@ -604,7 +634,7 @@
     });
 
     wheels[ins] = strip;
-    strip.scrollLeft = d.index * WH_W;
+    strip.scrollLeft = WH_P + d.index * WH_W;
     wheelPaint(strip);
     return strip;
   }
@@ -651,14 +681,21 @@
       onclick: function () { if (global.Tools) { global.Tools.openFreePiano(); } }
     });
 
-    var lookBtn = h('button', {
-      class: 'look-btn', type: 'button',
-      'aria-label': 'Aparença: clar o fosc i tipus de lletra',
-      'aria-haspopup': 'dialog',
-      onclick: function () { openSheet('look'); }
+    var trainBtn = h('button', {
+      class: 'train-btn', type: 'button',
+      'aria-label': 'Pr\u00e0ctica d\u2019o\u00efda',
+      onclick: function () { if (global.Tools) { global.Tools.openPractice(); } }
     }, [h('i')]);
 
+    var lookBtn = h('button', {
+      class: 'look-btn', type: 'button',
+      'aria-label': 'Ajustos: color, lletra i so',
+      'aria-haspopup': 'dialog',
+      onclick: function () { openSheet('look'); }
+    }, [h('i'), h('i'), h('i')]);
+
     return [
+      trainBtn,
       lookBtn,
       pianoBtn,
       h('h1', { class: 'chord-name' }, [rootTok, extTok]),
@@ -667,7 +704,12 @@
         h('em', {
           text: notes.map(function (n) { return spellDegree(n.pc, n.degree); }).join(' ')
         })
-      ])
+      ]),
+      /* la primera vegada, una pista; al primer canvi, fora per sempre */
+      read('coached', '') ? null : h('div', {
+        class: 'coach', 'aria-hidden': 'true',
+        text: 'toca la lletra per canviar l\u2019acord'
+      })
     ];
   }
 
@@ -696,6 +738,17 @@
     var idx = 0;
 
     if (kind === 'look') {
+      /* cada grup, com un sistema de particel·la: clau, icona i opcions */
+      var group = function (icon, grid) {
+        /* la icona al mig d'un filet: ----- icona ----- i a sota, les opcions */
+        return h('div', { class: 'grp' }, [
+          h('div', { class: 'grp-head' }, [
+            h('span', { class: 'grp-icon', 'aria-hidden': 'true', text: icon })
+          ]),
+          grid
+        ]);
+      };
+
       var modes = h('div', { class: 'opt-grid modes' });
       [['dark', 'fosc'], ['light', 'clar']].forEach(function (m) {
         modes.appendChild(option(m[1], {
@@ -704,7 +757,7 @@
           onPick: function () { setTheme(m[0]); closeSheet(); }
         }));
       });
-      wrap.appendChild(modes);
+      wrap.appendChild(group('\u25D0', modes));
 
       var fonts = h('div', { class: 'opt-grid fonts' });
       FONTS.forEach(function (f) {
@@ -716,7 +769,18 @@
         btn.classList.add('f-' + f.id);
         fonts.appendChild(btn);
       });
-      wrap.appendChild(fonts);
+      wrap.appendChild(group('Aa', fonts));
+
+      /* el so: la veu amb que sona tot el que toques */
+      var voices = h('div', { class: 'opt-grid voices' });
+      VOICES.forEach(function (v) {
+        voices.appendChild(option(v.name, {
+          pressed: state.voice === v.id,
+          index: idx++,
+          onPick: function () { setVoicePref(v.id); closeSheet(); }
+        }));
+      });
+      wrap.appendChild(group('\u266A', voices));
       return wrap;
     }
 
@@ -756,6 +820,7 @@
   function openSheet(kind) {
     // als plans d'eines el títol està dissolt: no s'obre res des d'allà
     if (!INSTRUMENTS[activeId]) { return; }
+    if (kind !== 'look' && !read('coached', '')) { write('coached', '1'); }
     if (sheetEl) { closeSheet(); }
     openKind = kind;
 
@@ -841,8 +906,8 @@
     var prev = activeId;
     activeId = id;
     stopArp();
-    if (prev === 'tuner' && toolHandles.tuner) { toolHandles.tuner.leave(); }
-    if (id === 'tuner' && toolHandles.tuner) { toolHandles.tuner.enter(); }
+    if (toolHandles[prev] && toolHandles[prev].leave) { toolHandles[prev].leave(); }
+    if (toolHandles[id] && toolHandles[id].enter) { toolHandles[id].enter(); }
     shell.root.classList.toggle('on-tool', !INSTRUMENTS[id]);
     if (INSTRUMENTS[id]) {
       state.ins = id;
@@ -865,7 +930,17 @@
     activate(id);
   }
 
+  var deckStillTimer = null;
+
   function onDeckScroll() {
+    /* mentre la pagina llisca, la bruixola calla: s'esvaeix i torna
+       quan el pla ha encaixat */
+    shell.root.classList.add('deck-moving');
+    if (deckStillTimer && global.clearTimeout) { global.clearTimeout(deckStillTimer); }
+    deckStillTimer = global.setTimeout(function () {
+      shell.root.classList.remove('deck-moving');
+    }, 150);
+
     var deck = shell.deck;
     // el fos de les capes és immediat, perquè es vegi mentre llisques
     if (deck.clientWidth) {
@@ -958,6 +1033,22 @@
     // col·locar el deck al pla guardat, sense animació
     var idx = PANELS.indexOf(state.ins);
     if (shell.deck.clientWidth) { shell.deck.scrollLeft = idx * shell.deck.clientWidth; }
+
+    /* l'empenta d'estrena: una ullada al pla del costat i tornar.
+       Diu "aixo llisca" sense dir res. Un sol cop a la vida. */
+    if (!read('nudged', '') && !reducedMotion()) {
+      global.setTimeout(function () {
+        if (activeId !== state.ins || sheetEl) { return; }
+        var d = shell.deck;
+        if (!d.clientWidth || !d.scrollTo) { return; }
+        var here = d.scrollLeft;
+        d.scrollTo({ left: here + 46, behavior: 'smooth' });
+        global.setTimeout(function () {
+          d.scrollTo({ left: here, behavior: 'smooth' });
+          write('nudged', '1');
+        }, 420);
+      }, 1300);
+    }
 
     if (landscapeMq && landscapeMq.addEventListener) {
       landscapeMq.addEventListener('change', function () {

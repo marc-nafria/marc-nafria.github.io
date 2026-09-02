@@ -179,6 +179,29 @@ petites, s'enfonsen i es desdibuixen, com una roda que gira. Es mou
 arrossegant-la, o tocant-ne una del costat. Aquí baix no hi ha animació de
 blur: la roda ja diu ella mateixa on ets.
 
+## El pianet posa nom al que sona
+
+Deixa tres o més notes fixades al pianet lliure i, si formen un acord del
+diccionari, **el símbol surt a la barra de dalt** (C, Am7, F/A si el baix no
+és la fonamental). Es prova cada nota com a fonamental, primer el baix.
+
+## Pràctica d'oïda
+
+L'anell de dalt a la dreta obre una pantalla pròpia amb **tres jocs** que es
+canvien lliscant (el títol i la descripció de cada joc respiren un moment i
+s'esvaeixen). Sense punts: només orella.
+
+1. **Construeix l'acord** — sona un acord i el busques al piano. Només valen
+   les **tecles que sonen de debò** (cap octavada), i el teclat s'ancora a
+   l'acord perquè sempre hi càpiga. Botons muts: l'**orella** (un cercle que
+   es buida de beix mentre sona; cada toc el reomple, així que si el vas
+   tocant no calla mai), les **tres tecletes** (escoltar la teva selecció),
+   **?** (la resposta) i **→** (un de nou).
+2. **Quina nota sona?** — la referència, pintada i sonant; després una nota
+   misteriosa: troba-la.
+3. **Pinta el grau** — des de la referència, et demanen un grau (3a menor,
+   5a justa…) i l'has de pintar. Prova de cantar-la abans.
+
 ## Mode clar i so a l'iPhone
 
 El rètol **clar/fosc** de dalt a l'esquerra canvia la paleta i es recorda. Els

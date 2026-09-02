@@ -221,6 +221,8 @@ guard('el deslizamiento no se reinicia', () => {
 
 /* ---- canvi de pla: instruments i eines ---- */
 guard('canvi de pla', () => {
+  ok(state.ins === 'piano', 'l’inici és el piano');
+  window.Practice.goTo('guitar');
   window.Practice.goTo('piano');
   ok(state.ins === 'piano', 'goTo porta al piano');
   ok(storage.get('ac.ins') === 'piano', 'i ho recorda');
@@ -615,7 +617,7 @@ guard('pianet lliure', () => {
   kbHost.dispatch('pointerup', { pointerId: 9 });
 
   const close = wrap.querySelectorAll('.fp-close')[0];
-  ok(!!close && close.textContent === '×', 'la creu discreta hi és');
+  ok(!!close && close.textContent === '←', 'la fletxa de tornar hi és');
   close.dispatch('click');
   ok(document.body.querySelectorAll('.fp-wrap').length === 0, 'i tanca el piano');
 });
@@ -652,10 +654,15 @@ guard('aparença: clar, fosc i tres lletres', () => {
   ok(!!sheet && sheet.attrs['data-kind'] === 'look', 'obre el seu popup');
   ok(sheet.querySelectorAll('.sheet-label').length === 0,
     'sense rètols: ja s’entén què s’hi tria');
-  ok(sheet.querySelectorAll('.opt-grid').length === 2, 'dues graelles: modes i lletres');
+  ok(sheet.querySelectorAll('.opt-grid').length === 3, 'tres graelles: color, lletra i so');
+  ok(sheet.querySelectorAll('.grp-brace').length === 0
+    && sheet.querySelectorAll('.staff').length === 0,
+    'sense claus ni pentagrames: aire i prou');
+  const icons = sheet.querySelectorAll('.grp-icon').map(i => i.textContent);
+  ok(icons.join(' ') === '◐ Aa ♪', 'les icones diuen què és cada grup: ' + icons.join(' '));
   const opts = sheet.querySelectorAll('.opt-big').map(o => o.textContent);
-  ok(opts.join(' ') === 'fosc clar Outfit Fraunces Instrument',
-    'dos modes i tres lletres: ' + opts.join(' '));
+  ok(opts.join(' ') === 'fosc clar Outfit Fraunces Instrument coixí elèctric',
+    'dos modes, tres lletres i dues veus: ' + opts.join(' '));
 
   // triar tanca el popup
   const clar = sheet.querySelectorAll('.opt').find(o => o.textContent === 'clar');
@@ -694,6 +701,17 @@ guard('aparença: clar, fosc i tres lletres', () => {
   s2 = document.body.querySelectorAll('.sheet')[0];
   s2.querySelectorAll('.opt').find(o => o.textContent === 'fosc').dispatch('click');
   ok(document.documentElement.getAttribute('data-theme') === null, 'que torna al negre');
+
+  // la veu de so es tria i es recorda
+  ok(typeof window.Sound.setVoice === 'function' && window.Sound.voice() === 'pad',
+    'la veu per defecte és el coixí');
+  app.querySelectorAll('.look-btn')[0].dispatch('click');
+  s2 = document.body.querySelectorAll('.sheet')[0];
+  s2.querySelectorAll('.opt').find(o => o.textContent === 'elèctric').dispatch('click');
+  ok(window.Sound.voice() === 'ep', 'l\u2019elèctric pren el relleu');
+  ok(window.localStorage.getItem('ac.voice') === 'ep', 'i es recorda');
+  ok(document.body.querySelectorAll('.sheet').length === 0, 'triant es tanca, com sempre');
+  window.Sound.setVoice('pad');
 });
 
 guard('l’slider d’entrar l’acord', () => {
@@ -761,12 +779,142 @@ guard('el pianet vesteix', () => {
   app.querySelectorAll('.piano-btn')[0].dispatch('click');
   const wrap = document.body.querySelectorAll('.fp-wrap')[0];
   const svg = wrap.querySelectorAll('svg')[0];
-  const felt = svg.children.find(c => c.tagName === 'rect' && c.attrs.fill === '#B08B3C');
-  ok(!!felt && Number(felt.attrs.opacity) > 0.8, 'el feltre daurat corre per sobre les tecles');
+  ok(!svg.children.some(c => c.tagName === 'rect' && c.attrs.fill === '#B08B3C'),
+    'sense feltre: només tecles');
   const g = svg.querySelectorAll('g').find(x => x.attrs['data-midi'] === '48');
   ok(g.children.some(c => c.tagName === 'rect' && c.attrs.fill === 'rgba(0,0,0,.14)'),
     'cada blanca té el seu front');
   wrap.querySelectorAll('.fp-close')[0].dispatch('click');
+});
+
+guard('el pianet posa nom al que sona', () => {
+  app.querySelectorAll('.piano-btn')[0].dispatch('click');
+  const wrap = document.body.querySelectorAll('.fp-wrap')[0];
+  const svg = wrap.querySelectorAll('svg')[0];
+  const nameEl = wrap.querySelectorAll('.fp-name')[0];
+  ok(!!nameEl && nameEl.textContent === '', 'el rètol comença buit');
+
+  const latch = (midi, pid) => {
+    const refs = svg.keyRefs[String(midi)];
+    svg.dispatch('pointerdown', { target: refs.rect, clientX: 100, clientY: 100, pointerId: pid });
+    svg.dispatch('pointermove', { clientX: 100, clientY: 145, pointerId: pid });
+    svg.dispatch('pointerup', { pointerId: pid });
+  };
+  latch(48, 21); latch(52, 22);
+  ok(nameEl.textContent === '', 'amb dues notes encara no diu res');
+  latch(55, 23);
+  ok(nameEl.textContent === 'C', 'C E G fixades: això és un C');
+  latch(58, 24);
+  ok(nameEl.textContent === 'C7', 'amb la sèptima, C7: ' + nameEl.textContent);
+
+  // treure el baix: el que queda és un acord amb baix nou
+  const refs48 = svg.keyRefs['48'];
+  svg.dispatch('pointerdown', { target: refs48.rect, clientX: 100, clientY: 100, pointerId: 25 });
+  svg.dispatch('pointermove', { clientX: 100, clientY: 55, pointerId: 25 });
+  svg.dispatch('pointerup', { pointerId: 25 });
+  ok(nameEl.textContent !== 'C7', 'sense el do, ja no és C7: ' + nameEl.textContent);
+  wrap.querySelectorAll('.fp-close')[0].dispatch('click');
+});
+
+guard('la pràctica: una pantalla amb tres jocs', () => {
+  const btn = app.querySelectorAll('.train-btn')[0];
+  ok(!!btn, 'l’anell de pràctica és a dalt a la dreta');
+  btn.dispatch('click');
+  const wrap = document.body.querySelectorAll('.pr-wrap')[0];
+  ok(!!wrap, 's’obre la seva pantalla');
+  ok(wrap.querySelectorAll('.pr-panel').length === 3, 'amb tres jocs per lliscar');
+
+  const intro = wrap.querySelectorAll('.pr-intro')[0];
+  ok(intro.children[0].textContent === 'Construeix l’acord',
+    'el títol del joc surt en entrar: ' + intro.children[0].textContent);
+  ok(intro.classList.contains('hide'), 'i s’esvaeix sol');
+
+  // joc 1: només valen les tecles que sonen
+  const p1 = wrap.querySelectorAll('.pr-panel')[0];
+  const g1 = p1._debug;
+  g1.force(0, 'maj');
+  ok(g1.state().total === 3, 'un C major són tres tecles concretes');
+  g1.tap(48);
+  ok(g1.state().found === 1 && g1.refs(48).rect.attrs.fill === '#DCC9A6',
+    'el do que sona compta i es marca');
+  g1.tap(60);
+  ok(g1.state().found === 1, 'el mateix do una octava amunt NO val');
+  ok(g1.refs(60).rect.attrs.fill === g1.refs(60).baseFill, 'i no es queda marcat');
+  ok(/1 \/ 3/.test(texts(p1, '.tool-hint')[0]), 'el comptador acompanya');
+  g1.tap(52);
+  g1.tap(55);
+  ok(g1.state().lastSolved === 'C', 'endevinat: era un C');
+
+  // inversions: la fonamental ve marcada i el xifrat porta el baix
+  g1.force(0, 'maj', 1);
+  ok(g1.state().midis.join(',') === '52,55,60', 'C/E: mi, sol i el do a dalt');
+  ok(g1.state().found === 1 && g1.refs(60).rect.attrs.fill === '#DCC9A6',
+    'la fonamental ja ve marcada de sèrie');
+  g1.tap(52);
+  g1.tap(55);
+  ok(g1.state().lastSolved === 'C/E', 'i el xifrat diu el baix: ' + g1.state().lastSolved);
+  ok(g1.state().done, 'res no passa sol: la ronda es queda resolta');
+  const arrow = p1.querySelectorAll('.pr-btn').find(b => b.textContent === '→');
+  ok(arrow.classList.contains('on'), 'la fletxa s’encén en acabar');
+  arrow.dispatch('click');
+  ok(!g1.state().done && !arrow.classList.contains('on'),
+    'i és la fletxa qui passa al següent');
+
+  // l’ortografia del baix segueix la tonalitat: Eb/Bb, mai D#/A#
+  g1.force(3, 'maj', 2);
+  g1.tap(58); g1.tap(63); g1.tap(67);
+  ok(g1.state().lastSolved === 'Eb/Bb',
+    'el baix s’escriu com toca: ' + g1.state().lastSolved);
+
+  // el teclat s’ancora a l’acord: un dom9 de Si arriba fins al 73
+  g1.force(11, 'dom9');
+  ok(!!g1.refs(73), 'la finestra es mou perquè totes les notes hi càpiguen');
+  g1.reveal();
+  ok(g1.state ? true : true, 'la resposta no peta');
+
+  // els quatre botons del joc 1, muts: orella, selecció, resposta, següent
+  const row = p1.querySelectorAll('.pr-row')[0];
+  ok(row.children.length === 4
+    && row.querySelectorAll('.pr-ear').length === 1
+    && row.querySelectorAll('.pr-sel').length === 1,
+    'orella que es buida, tres tecletes, ? i fletxa');
+
+  // joc 2: la nota misteriosa des de la referència
+  const g2 = wrap.querySelectorAll('.pr-panel')[1]._debug;
+  g2.force(48, 4);
+  ok(g2.state().target === 52, 'referència 48 + 3a major = 52');
+  g2.tap(50);
+  ok(!g2.state().done, 'fallar no resol');
+  g2.tap(48);
+  ok(!g2.state().done, 'tocar la referència no penalitza');
+  g2.tap(52);
+  ok(g2.state().lastSolved === '3a major', 'trobada: era una 3a major');
+
+  // joc 3: pinta el grau (canta’l abans)
+  const p3 = wrap.querySelectorAll('.pr-panel')[2];
+  const g3 = p3._debug;
+  g3.force(50, 3);
+  ok(texts(p3, '.pr-name')[0] === '3a menor', 'el grau es demana pel nom');
+  ok(/cantar/.test(texts(p3, '.tool-hint')[0]), 'i primer, prova de cantar-la');
+  g3.tap(53);
+  ok(g3.state().lastSolved === '3a menor', 'pintada al seu lloc');
+
+  wrap.querySelectorAll('.pr-close')[0].dispatch('click');
+  ok(document.body.querySelectorAll('.pr-wrap').length === 0, 'la creu tanca la pràctica');
+});
+
+guard('el rètol d’estrena: fins al primer canvi', () => {
+  window.localStorage.removeItem('ac.coached');
+  window.Practice.goTo('guitar');
+  repaint();
+  ok(texts(app, '.coach').length === 1 && /canviar/.test(texts(app, '.coach')[0]),
+    'la primera vegada, la pista hi és: ' + texts(app, '.coach')[0]);
+
+  app.querySelectorAll('.tok-root')[0].dispatch('click');
+  ok(window.localStorage.getItem('ac.coached') === '1', 'al primer canvi queda après');
+  document.body.querySelectorAll('.sheet-backdrop')[0].dispatch('click');
+  repaint();
+  ok(texts(app, '.coach').length === 0, 'i la pista no torna mai més');
 });
 
 guard('les tecles marcades semblen polsades', () => {
@@ -784,10 +932,13 @@ guard('la roda: el nom de dalt no parpelleja i aquí baix no hi ha blur', () => 
   ok(items.length > 1, 'hi ha més d’una inversió per provar: ' + items.length);
   ok(items[0].classList.contains('on') && !items[1].classList.contains('on'),
     'la del mig es llegeix neta i les altres no');
-  ok(items[1].style.filter === undefined && items[0].style.filter === undefined,
-    'sense cap blur a la roda');
-  ok(Number(items[1].style.opacity) < 1 && /scale/.test(items[1].style.transform),
-    'les del costat es fan petites i tènues');
+  ok(items[1].style.filter === undefined, 'cap blur a la roda');
+  ok(/rotate/.test(items[1].style.transform) && Number(items[1].style.opacity) < 1,
+    'els veïns s’inclinen com una brúixola i s’apaguen: ' + items[1].style.transform);
+  // la roda compta amb el coixí interior: la peça 0 no és el límit físic
+  const strip = activePanel.querySelectorAll('.wheel')[0];
+  ok(strip.scrollLeft === 46, 'la peça triada seu 46px endins del límit: ' + strip.scrollLeft);
+
   items[1].dispatch('click');
   ok(activePanel.querySelectorAll('.wh-item')[1].getAttribute('aria-selected') === 'true',
     'tocar-ne una la porta al centre');

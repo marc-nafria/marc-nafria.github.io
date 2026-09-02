@@ -33,7 +33,8 @@
     '#C7C0B2': '#F6F2E9',   /* tecla blanca del pianet */
     '#8E887F': '#E6E0D2',   /* tecla blanca sense marcar */
     '#0F0E0D': '#2B2721',   /* tecla negra */
-    '#171614': '#EDE7DA',   /* fons: mastil i tecla negra del pianet */
+    '#171614': '#EDE7DA',   /* el fons del mastil */
+    '#161513': '#2E2A24',   /* la negra viva: fosca tambe en clar */
     '#4A463F': '#9A9284',   /* vora de negra */
     '#5E5852': '#8B8377',   /* xifra de peu apagada */
     '#9C958B': '#5F584E',   /* xifra de peu marcada */
@@ -206,7 +207,7 @@
       var rect = el('rect', {
         x: x, y: PAD, width: w, height: h, rx: 1.5,
         fill: white ? (solid ? '#F7F4EF' : (live ? '#C7C0B2' : '#8E887F'))
-                    : (solid ? role.fill : (live ? '#171614' : '#0F0E0D')),
+                    : (solid ? role.fill : (live ? '#161513' : '#0F0E0D')),
         stroke: white ? '#0A0A0A' : (solid ? '#060605' : '#4A463F'),
         'stroke-width': white ? 1.4 : (solid ? 2.4 : 1.8)
       });
@@ -309,15 +310,6 @@
     svg.appendChild(whiteLayer);
     svg.appendChild(blackLayer);
     svg.appendChild(footLayer);
-
-    if (o.keyHandlers) {
-      /* el feltre de darrere les tecles, com als pianos de debo; la
-         tecla polsada s'enfonsa i llisca per sota */
-      svg.appendChild(el('rect', {
-        x: 0, y: PAD - 0.6, width: width, height: 4.2,
-        fill: '#B08B3C', opacity: 0.9
-      }));
-    }
 
     if (o.keyHandlers) {
       /* un sol joc de gestors per a tot el teclat, amb seguiment per

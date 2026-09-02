@@ -232,12 +232,78 @@
     o.stop(t + 0.08);
   }
 
-  /**
-   * Coixi suau i sostingut per al pianet lliure: atac lent, tres
-   * oscil·ladors desafinats un pel i filtre tancat. Es queda sonant
-   * fins que es crida release(), que esvaeix en ~0.8 s.
-   */
+  /* ----------------------------------------------------------------
+     La veu de tocar (pianet, fil d'entrar l'acord, jocs d'oida) es
+     tria als ajustos: 'pad' (coixi), 'ep' (electric FM) o 'pluck'
+     (corda pincada). Totes tornen { release() }.
+     ---------------------------------------------------------------- */
+  var voiceId = 'pad';
+
+  function setVoice(id) {
+    voiceId = id === 'ep' ? id : 'pad';
+  }
+
+  function voice() { return voiceId; }
+
   function padOn(midi) {
+    if (voiceId === 'ep') { return epOn(midi); }
+    return sustainedPad(midi);
+  }
+
+  /**
+   * Electric tipus Rhodes: FM 1:1 amb l'index de modulacio caient de
+   * pressa (la campaneta de l'atac) i una caiguda llarga i dolca.
+   */
+  function epOn(midi) {
+    if (!ready()) { return { release: function () {} }; }
+    var freq = global.Theory.midiToFreq(midi);
+    var t = ctx.currentTime;
+
+    var car = ctx.createOscillator();
+    car.type = 'sine';
+    car.frequency.value = freq;
+    var mod = ctx.createOscillator();
+    mod.type = 'sine';
+    mod.frequency.value = freq;
+    var mg = ctx.createGain();
+    mg.gain.setValueAtTime(freq * 2.2, t);
+    mg.gain.exponentialRampToValueAtTime(freq * 0.12, t + 0.55);
+    mod.connect(mg);
+    mg.connect(car.frequency);
+
+    var out = ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.linearRampToValueAtTime(0.34, t + 0.006);
+    /* cau al cos i s'hi queda: sona mentre mantinguis la tecla */
+    out.gain.exponentialRampToValueAtTime(0.15, t + 1.1);
+    car.connect(out);
+    out.connect(master);
+    mod.start(t);
+    car.start(t);
+
+    var done = false;
+    return {
+      release: function () {
+        if (done) { return; }
+        done = true;
+        try {
+          var n = ctx.currentTime;
+          out.gain.cancelScheduledValues(n);
+          out.gain.setValueAtTime(Math.max(out.gain.value || 0.12, 0.0001), n);
+          out.gain.exponentialRampToValueAtTime(0.0001, n + 0.35);
+          mod.stop(n + 0.5);
+          car.stop(n + 0.5);
+        } catch (e) { /* ja aturat */ }
+      }
+    };
+  }
+
+  /**
+   * Coixi suau i sostingut: atac lent, tres oscil·ladors desafinats un
+   * pel i filtre tancat. Es queda sonant fins que es crida release(),
+   * que esvaeix en ~0.8 s.
+   */
+  function sustainedPad(midi) {
     if (!ready()) { return { release: function () {} }; }
     var freq = global.Theory.midiToFreq(midi);
     var out = ctx.createGain();
@@ -322,6 +388,8 @@
     click: click,
     session: session,
     padOn: padOn,
+    setVoice: setVoice,
+    voice: voice,
     tone: tone,
     get ctx() { return ctx; }
   };

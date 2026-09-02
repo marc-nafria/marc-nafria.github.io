@@ -288,7 +288,7 @@
     if (base === 1) {
       svg.appendChild(el('rect', {
         x: L - 0.5 * k, y: T - 4 * k, width: G * 5 + k, height: 4 * k,
-        rx: 0.5 * k, fill: '#F7F4EF'
+        rx: 0.5 * k, fill: '#F4F1EB'
       }));
     } else {
       svg.appendChild(el('line', {
@@ -455,7 +455,7 @@
     if (base === 1) {
       svg.appendChild(el('rect', {
         x: L - 2.6 * k, y: T - 0.5 * k, width: 2.6 * k, height: G * 5 + k,
-        rx: 0.5 * k, fill: '#F7F4EF'
+        rx: 0.5 * k, fill: '#F4F1EB'
       }));
     } else {
       svg.appendChild(el('line', {
