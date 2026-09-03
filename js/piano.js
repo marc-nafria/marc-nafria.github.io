@@ -144,8 +144,12 @@
        una negra, es dibuixa tambe: un tros de teclat que acaba en Re sense
        el Re# sembla un Mi i despista. */
     var lastWhite = whiteMidis[whiteCount - 1];
-    var edgeLeft = !isWhite(from - 1);
-    var edgeRight = !isWhite(lastWhite + 1);
+    /* o.edges: 'both' (per defecte) | 'left' | 'right' | 'none' —
+       quins costats acaben amb la negra veina. Els teclats partits en
+       files fan servir aixo perque la costura no repeteixi tecles. */
+    var edgeMode = o.edges === undefined ? 'both' : (o.edges === false ? 'none' : o.edges);
+    var edgeLeft = !isWhite(from - 1) && (edgeMode === 'both' || edgeMode === 'left');
+    var edgeRight = !isWhite(lastWhite + 1) && (edgeMode === 'both' || edgeMode === 'right');
     var EDGE = BW / 2 + 2;
     var x0 = PAD + (edgeLeft ? EDGE : 0);
 

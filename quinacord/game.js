@@ -166,13 +166,18 @@
 
   function hear(ms) {
     if (!puzzle) { return; }
-    var dur = ms || 3200;
+    var dur = ms || 5000;
     Sound.ready();
     if (!voices.length) {
       puzzle.midis.forEach(function (m) { voices.push(Sound.padOn(m)); });
     }
     if (earTimer && global.clearTimeout) { global.clearTimeout(earTimer); }
-    earTimer = global.setTimeout(stopChord, dur);
+    earTimer = global.setTimeout(function () {
+      stopChord();
+      /* el punt es reomple: torna a ser el punt de "dia." */
+      els.earFill.style.transition = 'height .4s ease';
+      els.earFill.style.height = '100%';
+    }, dur);
     els.earFill.style.transition = 'none';
     els.earFill.style.height = '100%';
     void els.ear.offsetWidth;
@@ -258,6 +263,7 @@
     }
     lastMisses = state.misses;
 
+    try { document.body.classList.toggle('acabat', !!state.done); } catch (e) { /* res */ }
     els.name.classList.remove('ok');
     if (state.done) {
       els.name.textContent = puzzle.name;
@@ -318,20 +324,27 @@
     var w0 = Math.min.apply(null, puzzle.midis) - 1;
     while (WHITE.indexOf(((w0 % 12) + 12) % 12) === -1) { w0 -= 1; }
     var land = !!(global.matchMedia && global.matchMedia('(max-height: 480px)').matches);
-    var rows;
+    var rows;   /* [from, blanques, vores] */
     if (land) {
-      rows = [[w0, 15]];
+      rows = [[w0, 15, 'both']];
     } else {
-      var w7 = w0, n = 1, m = w0;
+      /* la fila de baix comenca a la blanca SEGÜENT de l'ultima de
+         dalt: cap tecla repetida. La negra de la costura viu nomes a
+         la fila de baix (vora esquerra). */
+      var n = 1, m = w0;
       while (n < 8) {
         m += 1;
-        if (WHITE.indexOf(((m % 12) + 12) % 12) !== -1) { n += 1; w7 = m; }
+        if (WHITE.indexOf(((m % 12) + 12) % 12) !== -1) { n += 1; }
       }
-      rows = [[w0, 8], [w7, 8]];
+      var w8 = m + 1;
+      while (WHITE.indexOf(((w8 % 12) + 12) % 12) === -1) { w8 += 1; }
+      rows = [[w0, 8, 'left'], [w8, 8, 'both']];
     }
+    var kh = 138;   /* el piano de sempre, sense inflar */
     rows.forEach(function (r) {
       var svg = Piano.render({
         from: r[0], keys: r[1], fluid: true,
+        keyHeight: kh, edges: r[2],
         keyHandlers: { press: onKey, release: function () {}, move: null },
         labels: 'none', footLabels: 'octaves'
       });
@@ -380,7 +393,7 @@
   /* ---------------- compartir i compte enrere ---------------- */
   function shareText() {
     var lines = [
-      'Quinacord #' + puzzle.number,
+      'L\u2019acord del dia #' + puzzle.number,
       state.misses === 0 ? 'sense cap errada' : state.misses + ' errades',
     ];
     var s = streakFor(modeId);
@@ -404,7 +417,25 @@
     }
   });
 
-  els.ear.addEventListener('click', hear);
+  /* tocar = 5 segons; aguantar el punt = mentre el tinguis premut
+     (s'allarga sol); anar clicant tambe suma temps */
+  var earHold = null;
+  function earDown(ev) {
+    if (ev && ev.preventDefault) { ev.preventDefault(); }
+    hear(5000);
+    if (earHold && global.clearInterval) { global.clearInterval(earHold); }
+    earHold = global.setInterval(function () {
+      if (voices.length) { hear(5000); }
+    }, 2600);
+  }
+  function earUp() {
+    if (earHold && global.clearInterval) { global.clearInterval(earHold); }
+    earHold = null;
+  }
+  els.ear.addEventListener('pointerdown', earDown);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (t) {
+    els.ear.addEventListener(t, earUp);
+  });
   els.more.addEventListener('click', freeRound);
   setMode('5');
   var kbRaf = false;

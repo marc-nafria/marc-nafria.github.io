@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1117">
+<meta name="description" content="Curso de teoría musical de 2 horas comparando piano y guitarra, con afinador, metrónomo y editor ChordPro.">
+<title>Cuerdas y Teclas — Teoría musical para guitarra y piano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230E1117'/><rect x='22' y='20' width='12' height='60' rx='3' fill='%23FAFAFA'/><rect x='44' y='20' width='12' height='60' rx='3' fill='%23FAFAFA'/><rect x='66' y='20' width='12' height='60' rx='3' fill='%23FF4B4B'/></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#/curso" aria-label="Inicio">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Cuerdas<em>y</em>Teclas</span>
+  </a>
+
+  <div class="instrument-switch" role="tablist" aria-label="Instrumento preferido">
+    <button class="ins-btn" role="tab" data-instrument="piano" aria-selected="false">Piano</button>
+    <button class="ins-btn" role="tab" data-instrument="guitar" aria-selected="false">Guitarra</button>
+    <button class="ins-btn" role="tab" data-instrument="both" aria-selected="true">Ambos</button>
+  </div>
+</header>
+
+<main id="main" class="main" tabindex="-1"></main>
+
+<nav class="tabbar" aria-label="Secciones">
+  <a class="tab" href="#/curso" data-section="curso">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v14H4zM13 5h7v14h-7z"/></svg>
+    <span>Curso</span>
+  </a>
+  <a class="tab" href="#/acordes" data-section="acordes">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="8" r="2.4"/><circle cx="14" cy="12" r="2.4"/><circle cx="9" cy="17" r="2.4"/></svg>
+    <span>Acordes</span>
+  </a>
+  <a class="tab" href="#/herramientas" data-section="herramientas">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M6 7v10M18 7v10M3 10v4M21 10v4"/></svg>
+    <span>Herramientas</span>
+  </a>
+  <a class="tab" href="#/guia" data-section="guia">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 014 4v12H9a4 4 0 01-4-4z"/><path d="M9 8h7M9 12h7"/></svg>
+    <span>Guía</span>
+  </a>
+</nav>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="../../js/theory.js"></script>
+<script src="../../js/audio.js"></script>
+<script src="../../js/piano.js"></script>
+<script src="../../js/fretboard.js"></script>
+<script src="../../js/shapes.js"></script>
+<script src="js/lessons.js"></script>
+<script src="js/lessons-1.js"></script>
+<script src="js/lessons-2.js"></script>
+<script src="js/chordbook.js"></script>
+<script src="js/tuner.js"></script>
+<script src="js/metronome.js"></script>
+<script src="js/chordpro.js"></script>
+<script src="js/guide.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -9,13 +9,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>Quinacord</title>
+<title>L'acord del dia</title>
 <link rel="icon" href="../icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap">
-<link rel="stylesheet" href="quinacord.css?v=9">
+<link rel="stylesheet" href="quinacord.css?v=22">
 </head>
 <body>
 
@@ -27,6 +27,14 @@
 
   <a class="q-back" href="../" aria-label="Tornar a Acords">&#8592;</a>
 
+  <h1 class="q-title">
+    <span class="q-lock">
+      <span class="t1">L&#8217;acord</span>
+      <span class="t2">del</span>
+      <span class="t3">dia<button type="button" class="q-dot" id="q-ear" aria-label="Sentir l&#8217;acord del dia"><span class="q-dot-c"><i id="q-ear-fill"></i><b class="q-dot-n">&#9834;</b></span></button></span>
+    </span>
+  </h1>
+
   <section class="q-stage">
     <div class="q-name" id="q-name" aria-live="polite"></div>
 
@@ -35,9 +43,6 @@
     <div class="q-kb" id="q-kb" aria-label="Teclat"></div>
 
     <div class="q-row">
-      <button type="button" class="pr-ear" id="q-ear" aria-label="Sentir l'acord del dia">
-        <i id="q-ear-fill"></i><span>&#9834;</span>
-      </button>
       <div class="q-done" id="q-done" hidden>
         <button type="button" class="q-share" id="q-share">comparteix</button>
         <button type="button" class="q-more" id="q-more">seguir jugant</button>
@@ -45,13 +50,11 @@
     </div>
   </section>
 
-  <a href="../" class="q-made">fet amb &#8249;Acords&#8250;</a>
-
 </main>
 
 <script src="../js/theory.js"></script>
 <script src="../js/audio.js"></script>
 <script src="../js/piano.js"></script>
-<script src="game.js?v=13"></script>
+<script src="game.js?v=21"></script>
 </body>
 </html>

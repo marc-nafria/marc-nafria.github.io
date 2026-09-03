@@ -38,7 +38,7 @@ function load(f) {
   new Function('window', 'document', code)(window, document);
 }
 
-['js/theory.js', 'js/piano.js', 'js/fretboard.js', 'js/shapes.js', 'js/chordpro.js'].forEach(load);
+['js/theory.js', 'js/piano.js', 'js/fretboard.js', 'js/shapes.js', 'arxiu/curs/js/chordpro.js'].forEach(load);
 const { Theory, Piano, Fret, Shapes, ChordPro } = window;
 global.Theory = Theory; global.Sound = { note() {}, chord() {}, ready() {} };
 

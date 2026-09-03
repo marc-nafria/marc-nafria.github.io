@@ -54,8 +54,8 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
 .q {
   position: relative;
   height: 100vh; height: 100dvh;
-  display: flex; flex-direction: column; align-items: center;
-  padding: calc(26px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column;
+  padding: calc(10px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom));
   overflow: hidden;
 }
 .q::before {
@@ -77,11 +77,126 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
 }
 .q > * { position: relative; z-index: 1; }
 
+/* ---------------- el titol: tres linies esglaonades ----------------
+   L'acord   (gran)
+       del   (petit, en beix, cap a la dreta)
+   dia       (el mes gran)                                          */
+/* ----------------------------------------------------------------
+   El titol es un lockup compost, no tres linies soltes:
+
+        L'acord          <- esquerra del bloc
+                DEL      <- dreta del bloc, microcaps beix ben tracades
+          dia.           <- gegant, centrat, amb el punt beix
+
+   El BLOC es centra com una unitat a la meitat superior; les
+   alineacions internes son deliberades. En acabar, s'esvaeix.
+   ---------------------------------------------------------------- */
+.q-title {
+  flex: 1 1 auto; min-height: 0;
+  margin: 0;
+  padding-top: calc(56px + env(safe-area-inset-top));
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  transition: opacity .45s ease;
+}
+body.acabat .q-title { opacity: 0; pointer-events: none; }
+
+.q-lock {
+  display: flex; flex-direction: column; align-items: center;
+  width: fit-content;
+}
+.q-title .t1 {
+  text-align: center;
+  font-size: clamp(3rem, 15vw, 4.1rem);
+  font-weight: var(--w-big); letter-spacing: -.03em; line-height: 1;
+  color: var(--text);
+}
+.q-title .t2 {
+  margin: .5em 0 .42em;
+  transform: translateX(1.7em);   /* l'esglao del DEL, cap a la dreta */
+  font-size: clamp(1.05rem, 5.2vw, 1.5rem);
+  font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--beige);
+}
+.q-title .t3 {
+  text-align: center;
+  margin-top: -.03em;
+  font-size: clamp(4.6rem, 23.5vw, 6.4rem);
+  font-weight: var(--w-big); letter-spacing: -.04em; line-height: .85;
+  color: var(--text);
+}
+/* el punt de "dia." es el boto d'escoltar: ple en repos, es buida
+   mentre sona, es reomple en callar */
+.q-dot {
+  position: relative;
+  display: inline-block;
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  font: inherit;   /* sense aixo, el boto va a 13px i el punt surt nan */
+  width: .42em; height: .42em;
+  margin-left: .08em;
+  vertical-align: baseline;
+}
+.q-dot::after {   /* zona de toc generosa, invisible */
+  content: ""; position: absolute; inset: -14px;
+}
+.q-dot-c {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--beige);
+  overflow: hidden;
+  display: block;
+  isolation: isolate;
+}
+/* la nota de dins: es veu que el punt sona */
+.q-dot-n {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: .2em;
+  color: var(--text);
+  mix-blend-mode: difference;
+}
+@media (prefers-color-scheme: light) {
+  .q-dot-n { mix-blend-mode: normal; color: #141210; }
+}
+.q-dot-c i {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
+  background: var(--beige);
+}
+.q-dot:active .q-dot-c { border-color: var(--text); }
+
+body.acabat .q-title { opacity: 0; pointer-events: none; }
+
+.q-lock {
+  display: flex; flex-direction: column;
+  width: fit-content;
+}
+.q-title .t1 {
+  display: block; text-align: left;
+  font-size: clamp(3rem, 15.5vw, 4.3rem);
+  font-weight: var(--w-big); letter-spacing: -.03em; line-height: 1;
+  color: var(--text);
+}
+.q-title .t2 {
+  display: block; text-align: right;
+  margin: .55em 0 .4em;
+  padding-right: .1em;
+  font-size: clamp(.95rem, 4.4vw, 1.25rem);
+  font-weight: var(--w-caps); letter-spacing: .46em; text-transform: uppercase;
+  text-indent: .46em;   /* compensa el tracking del final de linia */
+  color: var(--beige);
+}
+.q-title .t3 {
+  display: block; text-align: center;
+  margin-top: -.04em;
+  font-size: clamp(4.8rem, 25vw, 6.8rem);
+  font-weight: var(--w-big); letter-spacing: -.04em; line-height: .82;
+  color: var(--text);
+}
+
 /* ---------------- la marca xiuxiueja: enrere + microcaps ---------------- */
 .q-back {
-  position: absolute; top: calc(6px + env(safe-area-inset-top)); left: 4px;
-  width: 64px; height: 52px;
-  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: calc(4px + env(safe-area-inset-top)); left: 10px;
+  width: 56px; height: 48px;
+  display: flex; align-items: center; justify-content: flex-start;
   color: var(--muted); text-decoration: none;
   font-family: var(--sans); font-size: 2rem; font-weight: 600; line-height: 1;
 }
@@ -89,10 +204,12 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
 
 /* ---------------- l'escenari ---------------- */
 .q-stage {
-  flex: 1 1 auto; min-height: 0;
+  flex: none;
   width: 100%; max-width: 520px;
+  align-self: center;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px;
+  gap: 10px;
+  padding: 8px 0;
 }
 .q-name {
   min-height: 56px;
@@ -106,10 +223,12 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* l'unic marcador: les errades. Puja i batega quan falles. */
+/* l'unic marcador: les errades, com un foli arran del teclat */
 .q-fails {
-  min-height: 26px;
-  font-family: var(--mono); font-size: 1.05rem; font-weight: 700;
+  align-self: flex-end;
+  margin: 0 4px -4px 0;
+  min-height: 22px;
+  font-family: var(--mono); font-size: .95rem; font-weight: 700;
   color: var(--dim);
 }
 .q-fails.some { color: var(--muted); }
@@ -119,7 +238,7 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
   100% { transform: scale(1); }
 }
 
-.q-kb { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.q-kb { width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .q-kb svg { width: 100%; height: auto; display: block; }
 .q-kb svg rect { transition: fill .07s linear, stroke .07s linear; }
 .q-kb svg g[data-midi] { transition: transform .09s ease; }
@@ -130,24 +249,7 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
 }
 
 /* ---------------- la fila de sota: l'orella de la practica ---------------- */
-.q-row { display: flex; align-items: center; gap: 22px; margin-top: 8px; min-height: 46px; }
-.pr-ear {
-  position: relative;
-  appearance: none; cursor: pointer; padding: 0;
-  width: 44px; height: 44px;
-  border: 2px solid var(--beige); border-radius: 50%;
-  background: none; overflow: hidden;
-  color: var(--text);
-}
-.pr-ear i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--beige); }
-.pr-ear span {
-  position: relative;
-  font-family: var(--mono); font-size: 1.2rem; font-weight: 700;
-  mix-blend-mode: difference;
-}
-@media (prefers-color-scheme: light) {
-  .pr-ear span { mix-blend-mode: normal; color: #141210; }
-}
+.q-row { display: flex; align-items: center; gap: 22px; margin-top: 8px; min-height: 8px; }
 
 .q-done { display: flex; align-items: center; gap: 14px; }
 .q-done[hidden] { display: none; }
@@ -169,24 +271,21 @@ button { font-family: inherit; touch-action: manipulation; -webkit-user-select: 
 }
 .q-more:active { background: var(--text); }
 
-.q-made {
-  position: absolute; right: 14px; bottom: calc(10px + env(safe-area-inset-bottom));
-  font-size: .52rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
-  color: var(--dim); text-decoration: none;
-  border-bottom: 2px solid transparent; padding-bottom: 3px;
-}
-.q-made:active, .q-made:hover { color: var(--beige); border-color: var(--beige); }
 
 /* apaisat */
 @media (max-height: 480px) {
-  .q { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .q { padding-top: calc(6px + env(safe-area-inset-top)); }
+  .q-title { padding-top: 6px; }
+  .q-lock { flex-direction: row; align-items: baseline; gap: 10px; }
+  .q-title .t1 { font-size: 1.3rem; }
+  .q-title .t2 { margin: 0; font-size: .62rem; letter-spacing: .3em; text-indent: 0; }
+  .q-title .t3 { margin-top: 0; font-size: 1.7rem; }
   .q-modes { margin-top: 8px; gap: 26px; }
   .q-modes button { font-size: 1.05rem; padding-bottom: 8px; }
   .q-stage { gap: 8px; max-width: 640px; }
   .q-name { min-height: 34px; font-size: 1.9rem; }
   .q-row { margin-top: 2px; min-height: 38px; }
-  .pr-ear { width: 38px; height: 38px; }
-}
+  }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

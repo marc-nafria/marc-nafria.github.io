@@ -683,7 +683,7 @@
 
     var quinaBtn = h('a', {
       class: 'quina-btn', href: 'quinacord/',
-      'aria-label': 'Quinacord: el joc diari'
+      'aria-label': 'L\u2019acord del dia: el joc'
     }, [h('i', { text: '?' })]);
 
     var trainBtn = h('button', {

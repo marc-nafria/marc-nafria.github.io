@@ -1,11 +1,13 @@
 /* ============================================================
    sw.js — el treballador de servei: l'app sencera, fora de línia.
 
-   Ritual de versió: quan es puja una versió nova, s'apuja la V
-   d'aquí i el ?v=N d'index.html. La V mana sobre la memòria cau:
-   canviar-la fa baixar-ho tot de nou i escombra les caus velles.
+   Ritual de versió: QUALSEVOL canvi de fitxer (el joc inclòs!)
+   demana apujar la V d'aquí i el ?v=N d'index.html. La V mana
+   sobre la memòria cau: canviar-la ho baixa tot de nou i escombra
+   les caus velles. Sense el bump, els visitants es queden amb la
+   versió vella per sempre.
    ============================================================ */
-var V = '67';
+var V = '73';
 var CORE = 'acords-v' + V;
 var FONTS = 'acords-fonts';
 

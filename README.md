@@ -202,7 +202,7 @@ s'esvaeixen). Sense punts: només orella.
 3. **Pinta el grau** — des de la referència, et demanen un grau (3a menor,
    5a justa…) i l'has de pintar. Prova de cantar-la abans.
 
-## Quinacord — el joc diari (`/quinacord`)
+## L'acord del dia — el joc (`/quinacord`)
 
 Cada dia **sona un acord** (el mateix per a tothom, per mode) i l'has de
 trobar al piano: la fonamental ve donada, cada tecla encertada **es queda en
@@ -224,6 +224,24 @@ petit a baix ("versió nova · toca per actualitzar").
 **Ritual de publicació**: apuja el `?v=N` d'`index.html` **i** la `V` de
 `sw.js` (dos números, el mateix valor). La pantalla es manté **encesa**
 mentre el tempo sona o l'afinador escolta (Wake Lock).
+
+## Estructura del repositori
+
+```
+index.html            l'app (Acords)
+sw.js                 el treballador de servei (offline + versions)
+manifest.webmanifest  icones i instal·lació
+css/practice.css      tot l'estil de l'app
+js/                   els motors: theory, audio, piano, fretboard,
+                      shapes, config, tools, practice
+data/chords.json      LES DADES: acords, formes, digitacions (editable)
+quinacord/            «L'acord del dia», el joc (index + css + game)
+tests/                les suites; `node tests/tots.js` les corre totes
+arxiu/curs/           el curs antic (aparcat, fora de producció)
+```
+
+**Ritual de publicació**: apuja el `?v=N` d'`index.html` **i** la `V` de
+`sw.js` (mateix número) a **qualsevol** canvi de fitxer, joc inclòs.
 
 ## Mode clar i so a l'iPhone
 
