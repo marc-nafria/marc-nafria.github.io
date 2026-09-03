@@ -405,11 +405,28 @@
     fill(shell.panels.piano.kbR, [keyboard(rh, 'R')], fx);
   }
 
+  var ARP_BARS = 26;   /* més barres que notes: una ona, no un compte */
+
+  /* alçades pseudoaleatòries però deterministes per acord: canvien
+     quan canvia l'acord, no a cada repintat */
+  function arpWave(seed) {
+    var hs = [];
+    var t = (seed * 2654435761) >>> 0;
+    for (var i = 0; i < ARP_BARS; i++) {
+      t = (t * 1103515245 + 12345) >>> 0;
+      var r = (t >>> 16) / 65536;
+      var wave = .5 + .5 * Math.sin(i * .82 + seed % 7);
+      hs.push(Math.round(16 + 44 * wave * (.45 + .55 * r) + 12 * r));
+    }
+    return hs;
+  }
+
   function arpPaintUI(frac, level) {
     if (!arpUI) { return; }
-    var pct = (frac * 100).toFixed(2) + '%';
-    arpUI.bar.style.width = pct;
-    arpUI.thumb.style.left = pct;
+    var on = Math.round(frac * arpUI.bars.length);
+    arpUI.bars.forEach(function (b, i) {
+      if (i < on) { b.classList.add('on'); } else { b.classList.remove('on'); }
+    });
     arpUI.track.setAttribute('aria-valuenow', level);
   }
 
@@ -447,14 +464,17 @@
   }
 
   function arpSlider() {
-    var total = arpNotes().length;
-    var bar = h('i', { class: 'arp-fill' });
-    var thumb = h('b', { class: 'arp-thumb' });
+    var notes = arpNotes();
+    var total = notes.length;
+    var seed = notes.reduce(function (a, m) { return a + m; }, 17) + total * 31;
+    var bars = arpWave(seed).map(function (hh) {
+      return h('i', { class: 'arp-bar', style: 'height:' + hh + '%' });
+    });
     var track = h('div', {
       class: 'arp-track', role: 'slider', tabindex: '0',
       'aria-label': 'Entrar l\u2019acord nota a nota',
       'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': '0'
-    }, [bar, thumb]);
+    }, bars);
 
     /* continu: la barra segueix el dit tal qual, i cada nota entra en
        creuar la seva fraccio del recorregut */
@@ -489,7 +509,7 @@
       } catch (e) { /* la captura es un extra */ }
     });
 
-    arpUI = { track: track, bar: bar, thumb: thumb };
+    arpUI = { track: track, bars: bars };
     return h('div', { class: 'arp' }, [track]);
   }
 
@@ -681,10 +701,16 @@
       onclick: function () { if (global.Tools) { global.Tools.openFreePiano(); } }
     });
 
-    var quinaBtn = h('a', {
-      class: 'quina-btn', href: 'quinacord/',
-      'aria-label': 'L\u2019acord del dia: el joc'
-    }, [h('i', { text: '?' })]);
+    /* el lockup del joc, en miniatura: la seva propia marca fa de boto */
+    var quinaBtn = h('button', {
+      class: 'quina-btn', type: 'button',
+      'aria-label': 'L\u2019acord del dia: el joc',
+      onclick: function () { if (global.Quina && global.Quina.open) { global.Quina.open(); } }
+    }, [h('span', { class: 'qm' }, [
+      h('i', { class: 'qm1', text: 'L\u2019acord' }),
+      h('i', { class: 'qm2', text: 'del' }),
+      h('i', { class: 'qm3', text: 'dia' }, [h('u', { class: 'qm-dot' })])
+    ])]);
 
     var trainBtn = h('button', {
       class: 'train-btn', type: 'button',

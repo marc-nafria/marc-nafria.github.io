@@ -30,6 +30,7 @@
     var node = document.createElement(tag);
     Object.keys(attrs || {}).forEach(function (k) {
       if (k === 'text') { node.textContent = attrs[k]; }
+      else if (k === 'html') { node.innerHTML = attrs[k]; }
       else if (k.indexOf('on') === 0 && typeof attrs[k] === 'function') {
         node.addEventListener(k.slice(2), attrs[k]);
       } else if (attrs[k] !== null && attrs[k] !== undefined) {
@@ -85,6 +86,9 @@
       if (!document.hidden) { wakeAcquire(); }
     });
   }
+
+  /* la fletxa de tornar de la casa: cua llarga, punta oberta */
+  var BACK_ARROW = '<svg viewBox="0 0 36 26" aria-hidden="true"><path d="M34 6.5 C 27 15, 17 18.5, 5.5 15.6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M14 9.4 Q 9 12.8, 5 15.8 Q 10.6 17.4, 15.4 20.8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   function reducedMotion() {
     return !!(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -695,7 +699,7 @@
       h('div', { class: 'fp-bar' }, [
         fpNameEl,
         h('button', {
-          class: 'fp-close', type: 'button', text: '\u2190', 'aria-label': 'Tornar',
+          class: 'fp-close', type: 'button', html: BACK_ARROW, 'aria-label': 'Tornar',
           onclick: closeFreePiano
         })
       ]),
@@ -1282,7 +1286,7 @@
       deck,
       prIntroEl,
       h('button', {
-        class: 'fp-close pr-close', type: 'button', text: '\u2190',
+        class: 'fp-close pr-close', type: 'button', html: BACK_ARROW,
         'aria-label': 'Tornar', onclick: closePractice
       })
     ]);
@@ -1302,6 +1306,7 @@
     openPractice: openPractice,
     closePractice: closePractice,
     openFreePiano: openFreePiano,
-    closeOverlay: closeOverlay
+    closeOverlay: closeOverlay,
+    BACK_ARROW: BACK_ARROW
   };
 })(window);

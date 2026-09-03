@@ -1,0 +1,271 @@
+/* ============================================================
+   Quinacord — L'acord del dia, com a capa DINS l'app.
+   Mateixa casa: el fons mat amb gra, microcaps, el subratllat,
+   les mateixes entrades i sortides que el pianet i la pràctica.
+   Els colors vénen dels tokens de l'app (i giren amb el tema);
+   les lletres del lockup són pròpies: la identitat del joc no
+   canvia encara que l'usuari triï una altra lletra per a l'app.
+   ============================================================ */
+
+.q-wrap {
+  position: fixed; inset: 0; z-index: 40;
+  background: var(--bg);
+  animation: fade-in .2s ease both;
+  /* la identitat tipogràfica del joc, fixa */
+  --sans:  "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fraun: "Fraunces", Georgia, serif;
+  --instr: "Instrument Serif", Georgia, serif;
+  --w-big:  900;
+  --w-caps: 800;
+  --bad: #A65B4B;
+  font-family: var(--sans);
+}
+:root[data-theme="light"] .q-wrap { --bad: #9E4A38; }
+.q-wrap.closing { animation: fade-out .18s ease both; }
+
+/* el fons de l'app, exacte: llum principal, contrallum, vinyeta i gra */
+.q {
+  position: relative;
+  height: 100%;
+  display: flex; flex-direction: column;
+  padding: calc(10px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.q::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E") repeat left top / 240px 240px,
+    radial-gradient(115% 62% at 50% 26%, rgba(255, 255, 255, .07), transparent 66%),
+    radial-gradient(85% 48% at 16% 102%, rgba(255, 255, 255, .03), transparent 70%),
+    radial-gradient(135% 105% at 50% 46%, transparent 52%, rgba(0, 0, 0, .5) 100%);
+}
+:root[data-theme="light"] .q::before {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E") repeat left top / 240px 240px,
+    radial-gradient(115% 62% at 50% 26%, rgba(255, 255, 255, .8), transparent 66%),
+    radial-gradient(85% 48% at 16% 102%, rgba(255, 255, 255, .45), transparent 70%),
+    radial-gradient(135% 105% at 50% 46%, transparent 55%, rgba(31, 27, 21, .085) 100%);
+}
+.q > * { position: relative; z-index: 1; }
+
+/* ----------------------------------------------------------------
+   El titol es un lockup compost, no tres linies soltes:
+
+        L'acord          <- Instrument, italica, esquerra del bloc
+                DEL      <- Outfit microcaps beix, dreta del bloc
+          dia.           <- Fraunces 900, el mes gran; el punt escolta
+
+   El BLOC es centra com una unitat a la meitat superior; les
+   alineacions internes son deliberades. En acabar, s'esvaeix.
+   ---------------------------------------------------------------- */
+.q-title {
+  flex: 1 1 auto; min-height: 0;
+  margin: 0;
+  padding-top: calc(56px + env(safe-area-inset-top));
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  transition: opacity .45s ease;
+  animation: q-in .55s cubic-bezier(.2, .8, .2, 1) .05s both;
+  /* el bloc passa per sobre de la fletxa: que no li mengi els tocs */
+  pointer-events: none;
+}
+.q-title .q-dot { pointer-events: auto; }
+@keyframes q-in {
+  from { filter: blur(10px); opacity: 0; }
+  to   { filter: blur(0); opacity: 1; }
+}
+.q-wrap.acabat .q-title { opacity: 0; pointer-events: none; }
+
+.q-lock {
+  display: flex; flex-direction: column;
+  width: fit-content;
+}
+.q-title .t1 {
+  display: block; text-align: left;
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: clamp(3.1rem, 16vw, 4.4rem);
+  letter-spacing: .01em; line-height: 1;
+  color: var(--text);
+}
+.q-title .t2 {
+  display: block; text-align: right;
+  margin: .55em 0 .4em;
+  padding-right: .1em;
+  font-size: clamp(.95rem, 4.4vw, 1.25rem);
+  font-weight: var(--w-caps); letter-spacing: .46em; text-transform: uppercase;
+  text-indent: .46em;   /* compensa el tracking del final de linia */
+  color: var(--beige);
+}
+.q-title .t3 {
+  display: block; text-align: center;
+  margin-top: -.04em;
+  font-family: var(--fraun);
+  font-size: clamp(4.8rem, 25vw, 6.8rem);
+  font-weight: var(--w-big); letter-spacing: -.04em; line-height: .82;
+  color: var(--text);
+}
+
+/* el punt de "dia." es el boto d'escoltar: ple en repos, es buida
+   mentre sona, es reomple en callar */
+.q-dot {
+  position: relative;
+  display: inline-block;
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  font: inherit;   /* sense aixo, el boto va a 13px i el punt surt nan */
+  width: .3em; height: .3em;
+  margin-left: .09em;
+  vertical-align: baseline;
+  top: .06em;   /* arran de la base i amb aire: punt, no medalla */
+}
+.q-dot::after {   /* zona de toc generosa, invisible */
+  content: ""; position: absolute; inset: -14px;
+}
+.q-dot-c {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: block;
+  isolation: isolate;
+}
+/* la nota de dins: es veu que el punt sona */
+.q-dot-n {
+  position: absolute; inset: 9%;
+  width: 82%; height: 82%;
+  color: var(--text);
+  mix-blend-mode: difference;
+}
+:root[data-theme="light"] .q-dot-n { mix-blend-mode: normal; color: #141210; }
+.q-dot-c i {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
+  background: var(--beige);
+}
+
+/* L'estrena en dues fases. El coach SEMPRE reserva el seu lloc
+   (visibility, no display) i les fletxes son absolutes: el titol no
+   es mou mai, hi hagi coach, no n'hi hagi, o canvii de fase. */
+.q-coach {
+  /* nomes assenyala: cap toc es seu (les fletxes tapaven el punt) */
+  pointer-events: none;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 96px;
+  margin-top: 18px;
+  animation: q-coach-in 1s ease .9s both;
+}
+.q-coach[hidden] { visibility: hidden; }
+.q-coach b {
+  position: absolute; left: 50%; top: 30px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-weight: var(--w-caps);
+  font-size: .58rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim);
+}
+.q-arr { position: absolute; color: var(--beige); opacity: .8; }
+.q-arr[hidden] { display: none; }
+/* la del punt: viu al pla de la capa (fora del titol, que duu filter)
+   i el JS la clava sota el punt de debo, punta cap amunt */
+.q .q-arr-dot {
+  left: calc(50% + 40px); top: 34%;   /* per si el JS no pot mesurar */
+  width: 48px; height: 58px;   /* prou curta per no trepitjar el retol */
+  z-index: 2;
+  animation: q-coach-in 1s ease .9s both;
+}
+/* la del piano: sota el retol, baixant amb la punta cap avall */
+.q-arr-kb {
+  left: calc(50% - 18px); top: 48px;
+  width: 34px; height: 66px;
+}
+@keyframes q-coach-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---------------- enrere: la fletxa de la casa ---------------- */
+.q-back {
+  position: absolute; top: calc(6px + env(safe-area-inset-top)); left: 8px;
+  width: 76px; height: 56px;
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+  z-index: 5;
+}
+.q-back svg { width: 34px; height: 25px; display: block; }
+.q-back:active { color: var(--beige); }
+
+/* ---------------- l'escenari ---------------- */
+.q-stage {
+  animation: q-in .55s cubic-bezier(.2, .8, .2, 1) .16s both;
+  margin-bottom: max(3.5vh, 16px);
+  flex: none;
+  width: 100%; max-width: 520px;
+  align-self: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.q-name {
+  min-height: 56px;
+  display: flex; align-items: flex-end;
+  font-size: 3rem; font-weight: var(--w-big); letter-spacing: -.02em; line-height: 1;
+  color: var(--beige);
+}
+.q-name.ok { color: var(--ok); animation: q-pop .32s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes q-pop {
+  from { transform: scale(.92); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.q-kb { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.q-kb svg { width: 100%; height: auto; display: block; }
+.q-kb svg rect { transition: fill .07s linear, stroke .07s linear; }
+.q-kb svg g[data-midi] { transition: transform .09s ease; }
+.q-kb .q-shake { animation: q-shake .22s ease; }
+@keyframes q-shake {
+  25% { transform: translateX(-2.5px); }
+  75% { transform: translateX(2.5px); }
+}
+
+/* ---------------- la fila de sota ---------------- */
+.q-row { display: flex; align-items: center; gap: 22px; margin-top: 8px; min-height: 8px; }
+
+.q-done { display: flex; align-items: center; gap: 14px; }
+.q-done[hidden] { display: none; }
+.q-share {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 10px 16px;
+  background: var(--text); color: var(--bg);
+  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  border-radius: 3px;
+}
+.q-share:active { background: var(--beige); }
+/* seguir jugant: bloc beix, parella del comparteix */
+.q-more {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 10px 16px;
+  background: var(--beige); color: #060605;
+  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  border-radius: 3px;
+}
+.q-more:active { background: var(--text); }
+
+/* apaisat: tot en una fila, teclat d'una tirada */
+@media (max-height: 480px) {
+  .q { padding-top: calc(6px + env(safe-area-inset-top)); }
+  .q-title { padding-top: 6px; }
+  .q-lock { flex-direction: row; align-items: baseline; gap: 10px; }
+  .q-title .t1 { font-size: 1.3rem; }
+  .q-title .t2 { margin: 0; font-size: .62rem; letter-spacing: .3em; text-indent: 0; }
+  .q-title .t3 { margin-top: 0; font-size: 1.7rem; }
+  .q-stage { gap: 8px; max-width: 640px; }
+  .q-name { min-height: 34px; font-size: 1.9rem; }
+  .q-row { margin-top: 2px; min-height: 38px; }
+}
+
+/* pantalla gran: el teclat d'una tirada i mes ample; el lockup
+   no creix mes (els clamp ja el limiten), guanya aire */
+@media (min-width: 900px) and (min-height: 481px) {
+  .q-stage { max-width: 760px; margin-bottom: max(6vh, 28px); }
+  .q-title { padding-top: 24px; }
+  .q-coach { height: 110px; }
+}

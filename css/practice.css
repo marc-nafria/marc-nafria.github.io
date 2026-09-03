@@ -166,26 +166,23 @@ button {
    dissimulat: res no crida fins que el fas servir. */
 .arp-host { flex: none; display: flex; justify-content: center; }
 .arp { width: 100%; display: flex; justify-content: center; }
+/* barres com d'ona d'àudio: més barres que notes, alçades a l'atzar
+   (deterministes per acord). Arrossegar-hi el dit les va omplint de
+   beix i l'acord entra nota a nota; enrere, surten. */
 .arp-track {
   position: relative;
-  width: min(250px, 68%); height: 34px;
+  width: min(250px, 64%); height: 40px;   /* la zona de toc, generosa */
+  display: flex; align-items: center; gap: 2.5px;
   cursor: ew-resize;
   touch-action: none;
 }
-.arp-track::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+.arp-bar {
+  flex: 1 1 0; min-width: 1.5px; max-width: 5px;
   background: var(--line);
+  border-radius: 1px;
+  transition: background .14s ease;
 }
-.arp-fill {
-  position: absolute; left: 0; top: 50%; height: 2px; margin-top: -0.5px;
-  width: 0; background: var(--beige);
-}
-.arp-thumb {
-  position: absolute; left: 0; top: 50%;
-  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%; background: var(--muted);
-}
-.arp-track:active .arp-thumb { background: var(--beige); }
+.arp-bar.on { background: var(--beige); }
 .panel-inner > * { position: relative; z-index: 1; }
 
 /* ---------------- capas fijas ---------------- */
@@ -203,22 +200,46 @@ button {
   text-align: center;
 }
 
-/* el salt al Quinacord: l'anell amb la pregunta */
+/* el salt al joc: el seu lockup, en miniatura (mateixes tres lletres,
+   sempre les de la casa, triï el que triï l'usuari per a l'app) */
 .quina-btn {
-  position: absolute; top: calc(20px + env(safe-area-inset-top)); left: 12px;
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  text-decoration: none;
+  position: absolute; top: calc(12px + env(safe-area-inset-top)); left: 14px;
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: 6px 8px;
+  display: block;
 }
-.quina-btn i {
-  width: 22px; height: 22px; border-radius: 50%;
-  border: 2px solid var(--dim);
-  display: flex; align-items: center; justify-content: center;
-  font-style: normal;
-  font-family: var(--mono); font-size: .82rem; font-weight: 700;
+.quina-btn .qm {
+  display: flex; flex-direction: column;
+  width: fit-content;
+  line-height: 1;
+}
+.quina-btn .qm i { display: block; font-style: normal; }
+.quina-btn .qm1 {
+  text-align: left;
+  font-family: "Instrument Serif", Georgia, serif; font-style: italic;
+  font-size: 1.08rem; font-weight: 400; letter-spacing: .01em;
+  color: var(--text);
+}
+.quina-btn .qm2 {
+  text-align: right;
+  margin: .4em 0 .34em; padding-right: .06em;
+  font-family: "Outfit", system-ui, sans-serif;
+  font-size: .4rem; font-weight: 800;
+  letter-spacing: .4em; text-indent: .4em; text-transform: uppercase;
   color: var(--beige);
 }
-.quina-btn:active i { border-color: var(--beige); }
+.quina-btn .qm3 {
+  text-align: center;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.34rem; font-weight: 900; letter-spacing: -.04em;
+  color: var(--text);
+}
+.qm-dot {
+  display: inline-block; text-decoration: none;
+  width: .3em; height: .3em; margin-left: .07em;
+  border-radius: 50%; background: var(--beige);
+}
+.quina-btn:active .qm1, .quina-btn:active .qm3 { color: var(--beige); }
 
 /* practica d'oida: un anell amb el punt al mig */
 .train-btn {
@@ -737,9 +758,10 @@ button {
 .fp-close {
   appearance: none; border: 0; background: none; cursor: pointer;
   width: 84px; height: 60px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
   color: var(--muted);
-  font-family: var(--sans); font-size: 2.7rem; font-weight: 600; line-height: 1;
 }
+.fp-close svg { width: 34px; height: 25px; display: block; }
 .fp-close:active { color: var(--beige); }
 /* el nom del que sona, si el pianet el reconeix */
 .fp-name {
@@ -798,6 +820,7 @@ button {
      i el fil d'entrar l'acord a sota, d'ample sencer */
   .panel[data-ins="piano"] .stage {
     flex-direction: row; flex-wrap: wrap; align-items: center;
+    align-content: center;
     gap: 10px 16px;
   }
   .panel[data-ins="piano"] .kb-slot { flex: 1 1 42%; min-width: 0; }
@@ -813,10 +836,44 @@ button {
   .panel[data-ins="guitar"] .diagram.narrow { max-width: min(620px, 88vw); }
 }
 
-/* ---------------- pantallas anchas ---------------- */
+/* ---------------- pantallas anchas ----------------
+   Les mesures del mòbil no es toquen: aquí només es redistribueix.
+   Un MARC de contingut limita l'amplada i els botons de cantonada
+   s'hi alineen (a 1440px les cantonades del navegador queden a un
+   pam del contingut i tot semblava escampat). */
 @media (min-width: 760px) {
   .panel-inner { max-width: 640px; margin: 0 auto; }
-  .sheet { max-width: 640px; margin: 0 auto; }
+  .pinned-top .pinned-inner { max-width: 640px; margin: 0 auto; }
+  .sheet { max-width: 560px; margin: 0 auto; }
+}
+
+/* escriptori de debò: més marc, l'acord respira i el piano posa
+   les dues mans costat a costat, com el piano de veritat */
+@media (min-width: 900px) and (min-height: 481px) {
+  :root { --top-h: 244px; }
+  .panel-inner { max-width: 1000px; padding-top: calc(var(--top-h) + 16px); }
+  .pinned-top .pinned-inner { max-width: 1000px; }
+  .pinned-top .pinned-inner { padding-top: calc(84px + env(safe-area-inset-top)); }
+  .chord-name { font-size: clamp(5.2rem, 9.5vw, 7.6rem); }
+  .chord-line { margin-top: 12px; }
+
+  .panel[data-ins="piano"] .stage {
+    flex-direction: row; flex-wrap: wrap; align-items: center;
+    align-content: center;   /* sense això, les files es reparteixen l'alçada i queda un buit */
+    gap: 14px 30px;
+  }
+  .panel[data-ins="piano"] .kb-slot { flex: 1 1 42%; min-width: 0; }
+  .panel[data-ins="piano"] .arp-host { order: 3; flex: 1 1 100%; }
+  .panel[data-ins="piano"] .kb { min-width: 0; }
+
+  .diagram.narrow { max-width: 470px; }
+  .wheel-host { padding-top: 22px; }
+
+  /* la pràctica i el pianet, dins el mateix marc. El teclat també
+     es limita per alçada: dues mans + botons han de cabre sempre */
+  .pr-kb { max-width: min(720px, 68vh); }
+  .pr-name { font-size: 3rem; }
+  .pr-row { margin-top: 30px; }
 }
 
 /* l'avis de versio nova: petit, baix, i marxa en tocar-lo */

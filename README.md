@@ -202,16 +202,20 @@ s'esvaeixen). Sense punts: només orella.
 3. **Pinta el grau** — des de la referència, et demanen un grau (3a menor,
    5a justa…) i l'has de pintar. Prova de cantar-la abans.
 
-## L'acord del dia — el joc (`/quinacord`)
+## L'acord del dia — el joc
 
-Cada dia **sona un acord** (el mateix per a tothom, per mode) i l'has de
-trobar al piano: la fonamental ve donada, cada tecla encertada **es queda en
-verd**, cada errada omple una de les **4 caselles** — i si s'omplen totes,
-es revela i demà més. Tres modes: **3, 5 i 7 notes** (tríades, novenes,
-tretzenes), cadascun amb el seu puzle i la seva **ratxa**. En acabar:
-**comparteix** la graella (🟩🟥, sense espòiler) i el compte enrere fins al
-següent. El puzle és determinista per data local; el nucli té els seus tests
-(`node tests/quinacord.js`).
+Cada dia **sona un acord** de cinc notes (el mateix per a tothom) i l'has de
+trobar al piano, tecla exacta: les encertades **es queden en verd**, les
+errades **en terracota** (ja no recompten, i l'acord es torna a sentir un
+moment, de correctiu). No es perd mai: es compta com al golf, **com menys
+errades millor**. En acabar, **comparteix** ("#N · X errades") o **segueix
+jugant** amb rondes lliures. El puzle és determinista per data local i porta
+la seva **ratxa**; el nucli té els seus tests (`node tests/quinacord.js`).
+
+El joc **viu dins l'app** (botó **?** de dalt a l'esquerra, o `/#quina`):
+és una capa com el pianet, no una pàgina — en PWA, saltar de pàgina treu la
+barra del navegador i trenca la sensació d'app. L'adreça vella `/quinacord/`
+es queda com a redirecció per als enllaços compartits.
 
 ## App de debò (PWA)
 
@@ -232,10 +236,11 @@ index.html            l'app (Acords)
 sw.js                 el treballador de servei (offline + versions)
 manifest.webmanifest  icones i instal·lació
 css/practice.css      tot l'estil de l'app
+css/quina.css         l'estil del joc (la capa «L'acord del dia»)
 js/                   els motors: theory, audio, piano, fretboard,
-                      shapes, config, tools, practice
+                      shapes, config, tools, practice, quina (el joc)
 data/chords.json      LES DADES: acords, formes, digitacions (editable)
-quinacord/            «L'acord del dia», el joc (index + css + game)
+quinacord/            només la redirecció vella cap a /#quina
 tests/                les suites; `node tests/tots.js` les corre totes
 arxiu/curs/           el curs antic (aparcat, fora de producció)
 ```

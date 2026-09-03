@@ -617,7 +617,8 @@ guard('pianet lliure', () => {
   kbHost.dispatch('pointerup', { pointerId: 9 });
 
   const close = wrap.querySelectorAll('.fp-close')[0];
-  ok(!!close && close.textContent === '←', 'la fletxa de tornar hi és');
+  ok(!!close && /svg/.test(close.innerHTML) && /stroke/.test(close.innerHTML),
+    'la fletxa de la casa, dibuixada, hi és');
   close.dispatch('click');
   ok(document.body.querySelectorAll('.fp-wrap').length === 0, 'i tanca el piano');
 });
@@ -728,8 +729,10 @@ guard('l’slider d’entrar l’acord', () => {
   const mid = Math.round(total / 2);
   track.dispatch('pointerdown', { clientX: 260 * (mid + 0.4) / total, pointerId: 1 });
   ok(track.attrs['aria-valuenow'] === String(mid), 'a mig camí: ' + track.attrs['aria-valuenow']);
-  ok(/%/.test(track.querySelectorAll('.arp-fill')[0].style.width),
-    'la barra segueix el dit, contínua: ' + track.querySelectorAll('.arp-fill')[0].style.width);
+  const bars = track.querySelectorAll('.arp-bar');
+  ok(bars.length > total, 'més barres que notes, com una ona: ' + bars.length);
+  const lit = bars.filter(b => b.classList.contains('on')).length;
+  ok(lit > 0 && lit < bars.length, 'les barres s’omplen seguint el dit: ' + lit + '/' + bars.length);
   let hollow = panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none');
   ok(hollow.length > 0, 'les que falten esperen en fantasma: ' + hollow.length);
 
@@ -919,8 +922,9 @@ guard('el rètol d’estrena: fins al primer canvi', () => {
 
 guard('el salt al Quinacord', () => {
   const a = app.querySelectorAll('.quina-btn')[0];
-  ok(!!a && a.attrs.href === 'quinacord/' && a.textContent === '?',
-    'l’anell amb la pregunta porta al joc diari');
+  ok(!!a && a.tagName === 'button' && /dia/.test(a.textContent),
+    'el lockup en miniatura obre el joc diari');
+  ok(a.querySelectorAll('.qm-dot').length === 1, 'amb el seu punt beix, sense triangle');
 });
 
 guard('les tecles marcades semblen polsades', () => {

@@ -16,7 +16,7 @@ const w = { window: null, console };
 w.window = w;
 vm.createContext(w);
 vm.runInContext(fs.readFileSync(path.join(root, 'js', 'theory.js'), 'utf8'), w);
-vm.runInContext(fs.readFileSync(path.join(root, 'quinacord', 'game.js'), 'utf8'), w);
+vm.runInContext(fs.readFileSync(path.join(root, 'js', 'quina.js'), 'utf8'), w);
 
 const Q = w.Quina;
 ok(!!Q, 'el nucli s’exporta encara que no hi hagi pàgina');
