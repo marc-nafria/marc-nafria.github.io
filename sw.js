@@ -7,7 +7,7 @@
    les caus velles. Sense el bump, els visitants es queden amb la
    versió vella per sempre.
    ============================================================ */
-var V = '78';
+var V = '88';
 var CORE = 'acords-v' + V;
 var FONTS = 'acords-fonts';
 
@@ -24,6 +24,7 @@ var ASSETS = [
   'js/shapes.js',
   'js/config.js',
   'js/tools.js',
+  'js/cercle.js',
   'js/practice.js',
   'js/quina.js',
   'css/quina.css',

@@ -1,5 +1,8 @@
 # Acordes · guitarra y piano
 
+> L'estil de la casa (tipografies, graus, color, moviment) és llei
+> escrita: **[ESTIL.md](ESTIL.md)**. Cap pantalla nova sense llegir-lo.
+
 Web de práctica para el móvil: un acorde a pantalla completa, sus posiciones de
 guitarra y sus inversiones de piano. Sin nombre, sin cuentas, sin
 backend y sin dependencias: HTML, CSS y JavaScript planos.
@@ -41,11 +44,11 @@ cambio — acorde, extensión o inversión — **sale y entra desenfocado**.
 Como el acorde mayor no lleva sufijo, su hueco de extensión se pinta como
 **fantasma** (`may` al 32%): se lee como campo editable, no como parte del nombre.
 
-**En medio: el instrumento, a pantalla completa.** Se pasa de guitarra a piano
-**deslizando en horizontal**, con enganche por panel; con el teclado, flechas
-izquierda y derecha, y en el escritorio pulsando las dos barritas de abajo. No
-hay scroll vertical: todo cabe en pantalla, y el diagrama ocupa todo el hueco
-libre. La profundidad no la da ningún adorno: el plano que se desliza es un poco
+**En medio: el instrumento, a pantalla completa.** L'instrument (guitarra o
+piano) **es tria a la configuració** i tota la plataforma és d'aquell
+instrument; el carrusel passa d'eines a instrument a cercle **lliscant en
+horitzontal** (o amb les fletxes del teclat). No hay scroll vertical: todo cabe
+en pantalla, y el diagrama ocupa todo el hueco libre. La profundidad no la da ningún adorno: el plano que se desliza es un poco
 más claro que el fondo y lleva su propia luz, las capas fijas son cristal oscuro
 desenfocado, y cada una proyecta su sombra sobre lo que pasa por debajo.
 
@@ -63,14 +66,15 @@ desenfocado, y cada una proyecta su sombra sobre lo que pasa por debajo.
   digitación va dentro de cada círculo (`L5 L1` · `R1 R2 R3 R5`, 1 pulgar …
   5 meñique) y el nombre de la nota debajo de cada tecla.
 
-**Eines**: el carrusel té quatre plans — afinador | guitarra | piano |
-tempo — i les capes fixes es dissolen amb desenfocament en entrar a les eines.
+**Eines**: el carrusel té tres plans — eines | instrument | cercle — i les
+capes fixes es dissolen amb desenfocament en entrar a les eines. L'afinador i
+el tempo comparteixen **una sola finestra partida per la meitat**.
 
-- **Afinador** (pla de l'esquerra): micròfon + autocorrelació, nota gegant que
+- **Afinador** (meitat de dalt): micròfon + autocorrelació, nota gegant que
   es torna beix quan estàs afinat, regla de cents i avís tensa/afluixa. El
-  micròfon s'engega en arribar al pla i s'allibera en marxar. Necessita HTTPS
-  (GitHub Pages ja en dona).
-- **Tempo** (pla de la dreta): tocar el número l'engega o l'atura; arrossegar-lo
+  micròfon **només es demana en prémer el botó d'activar-lo**, i s'allibera
+  en marxar del pla. Necessita HTTPS (GitHub Pages ja en dona).
+- **Tempo** (meitat de baix): tocar el número l'engega o l'atura; arrossegar-lo
   (o la roda) el puja o baixa; **picar al ritme sobre l'espai buit del pla**
   ajusta el BPM (tap tempo sense cap control extra, amb el número fent un batec
   a cada toc). El compàs s'obre com els selectors d'acords: 3/4 i 4/4 en gran,
@@ -217,6 +221,33 @@ El joc **viu dins l'app** (botó **?** de dalt a l'esquerra, o `/#quina`):
 barra del navegador i trenca la sensació d'app. L'adreça vella `/quinacord/`
 es queda com a redirecció per als enllaços compartits.
 
+## Un sol instrument
+
+La plataforma no duplica res: a la **configuració** (icona dels tres
+filets) es tria **piano o guitarra**, i tot el carrusel, el cercle i les
+fitxes són d'aquell instrument. El carrusel té tres plans: **eines**
+(afinador i tempo, una sola finestra partida per la meitat),
+**l'instrument** i **el cercle de quintes**. El micròfon de l'afinador
+només es demana en prémer el botó d'activar-lo, mai tot sol.
+
+## El cercle de quintes
+
+Una **brúixola que es gira amb el dit**, amb inèrcia de roda de debò:
+l'arrossegues o li dones embranzida, i en aturar-se encaixa a la
+tonalitat més propera, que sempre queda a dalt, sota el **marc fix de la
+família** (IV·I·V a fora, ii·vi·iii a dins). Girar és transposar. Al
+centre, només la tonalitat i el botó de **fer gran**: amaga la
+progressió i ensenya el cercle sencer (i «fer petita» torna a la
+brúixola).
+
+**Explora els graus** tocant caselles: cada acord sona i s'obre la
+**fitxa de com es toca** amb l'instrument triat. O **crea una roda**:
+prems el botó, hi vas posant els acords que vulguis (tocar-ne un de la
+línia el treu), i **acceptar** la fixa **a dalt, ben gran, amb els seus
+graus**. La roda es guarda **per graus**: quan transposes, es reescriu
+sola (C·G·Am·F esdevé D·A·Bm·G) i les caselles duen el seu punt. La
+creueta la buida. Motor a `js/cercle.js`, estils a `practice.css`.
+
 ## App de debò (PWA)
 
 L'app funciona **100% fora de línia**: un service worker (`sw.js`) guarda tots
@@ -238,7 +269,8 @@ manifest.webmanifest  icones i instal·lació
 css/practice.css      tot l'estil de l'app
 css/quina.css         l'estil del joc (la capa «L'acord del dia»)
 js/                   els motors: theory, audio, piano, fretboard,
-                      shapes, config, tools, practice, quina (el joc)
+                      shapes, config, tools, practice, cercle (quintes),
+                      quina (el joc)
 data/chords.json      LES DADES: acords, formes, digitacions (editable)
 quinacord/            només la redirecció vella cap a /#quina
 tests/                les suites; `node tests/tots.js` les corre totes

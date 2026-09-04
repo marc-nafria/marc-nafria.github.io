@@ -24,32 +24,14 @@
   --pad:   14px;
 
   --sans:  "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --fraun: "Fraunces", Georgia, serif;              /* la veu de la musica */
+  --instr: "Instrument Serif", Georgia, serif;      /* la veu que xiuxiueja */
   --w-big:  900;   /* l'acord, la xifra de tempo, la nota de l'afinador */
   --w-caps: 800;   /* els micro-retols */
   --tight: -.03em;
   --wh-w:  118px;  /* l'ample d'una peca de la roda */
   --mono:  "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
-
-/* ---------------- les tres lletres ----------------
-   Nomes canvia la familia i el seu pes propi: Fraunces te un 900 de
-   debo i Instrument Serif nomes te una regular, i posar-li negreta
-   sintetica la desmuntaria. */
-:root[data-font="fraunces"] {
-  --sans: "Fraunces", Georgia, "Times New Roman", serif;
-  --w-big: 900; --w-caps: 700; --tight: -.02em;
-}
-:root[data-font="instrument"] {
-  --sans: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --w-big: 400; --w-caps: 400; --tight: -.01em;
-}
-:root[data-font="instrument"] .chord-name,
-:root[data-font="instrument"] .wh-item b,
-:root[data-font="instrument"] .mn-bpm,
-:root[data-font="instrument"] .tuner-note { letter-spacing: var(--tight); }
-:root[data-font="instrument"] .micro,
-:root[data-font="instrument"] .kb-head span,
-:root[data-font="instrument"] .wh-item span { letter-spacing: .2em; }
 
 /* ---------------- mode clar ----------------
    Els mateixos papers, girats: paper calid, tinta negra i l'accent
@@ -150,15 +132,15 @@ button {
   position: relative;
   height: 100%;
   display: flex; flex-direction: column; justify-content: center; gap: 8px;
-  padding: calc(var(--top-h) + 8px) var(--pad) calc(38px + env(safe-area-inset-bottom));
+  padding: calc(var(--top-h) + 8px) var(--pad) calc(26px + env(safe-area-inset-bottom));
 }
 /* l'escenari: els diagrames. La roda va just a sota, dins la seccio,
    i sense arribar mai a la vora de baix */
 .stage {
   flex: 1 1 auto; min-height: 0;
-  display: flex; flex-direction: column; justify-content: center; gap: 8px;
+  display: flex; flex-direction: column; justify-content: center; gap: 12px;
 }
-.wheel-host { flex: none; padding-top: 14px; transition: opacity .22s ease; }
+.wheel-host { flex: none; padding-top: 10px; transition: opacity .22s ease; }
 #app.deck-moving .wheel-host { opacity: 0; }
 
 /* entrar l'acord: un fil entre els dos pianos. Arrossega i tu
@@ -171,7 +153,7 @@ button {
    beix i l'acord entra nota a nota; enrere, surten. */
 .arp-track {
   position: relative;
-  width: min(250px, 64%); height: 40px;   /* la zona de toc, generosa */
+  width: min(280px, 72%); height: 40px;   /* la zona de toc, generosa */
   display: flex; align-items: center; gap: 2.5px;
   cursor: ew-resize;
   touch-action: none;
@@ -354,7 +336,7 @@ button {
 /* ---------------- diagramas ---------------- */
 .diagram { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; }
 .diagram svg { width: 100%; height: 100%; }
-.diagram.narrow { max-width: 420px; margin: 0 auto; }
+.diagram.narrow { max-width: min(440px, 100%); margin: 0 auto; }
 
 .empty {
   flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center;
@@ -501,9 +483,6 @@ button {
 .sheet[data-kind="look"] .opt-big { font-size: 1.1rem; white-space: nowrap; }
 .sheet[data-kind="look"] .opt-grid.fonts .opt-big { font-size: 1rem; }
 /* cada lletra es mostra amb la seva propia lletra */
-.opt.f-outfit .opt-big { font-family: "Outfit", sans-serif; font-weight: 900; }
-.opt.f-fraunces .opt-big { font-family: "Fraunces", serif; font-weight: 900; }
-.opt.f-instrument .opt-big { font-family: "Instrument Serif", serif; font-weight: 400; }
 
 .opt-grid { display: grid; gap: 14px 8px; }
 .opt-grid + .opt-grid { margin-top: 22px; }
@@ -552,6 +531,20 @@ button {
    clicar: sense això, el títol invisible seguia obrint el selector */
 #app.on-tool .pinned { opacity: 0; filter: blur(10px); }
 #app.on-tool .pinned .pinned-inner { pointer-events: none; }
+
+/* afinador i tempo: un sol pla, partit per la meitat, amb un filet */
+.tools-split {
+  height: 100%;
+  display: flex; flex-direction: column;
+}
+.tools-split .tool-inner { flex: 1 1 50%; min-height: 0; height: auto; }
+.tools-split .tool-inner + .tool-inner { border-top: 1px solid var(--line); }
+.tools-split .tool-inner[data-tool="tuner"] {
+  padding-bottom: 24px;
+}
+.tools-split .tool-inner[data-tool="metronome"] {
+  padding-top: 24px;
+}
 
 .tool-inner {
   position: relative;
@@ -652,7 +645,7 @@ button {
 }
 .pr-panel .tool-hint { min-height: 18px; margin: 8px 0 18px; }
 .pr-kb {
-  width: 100%; max-width: 520px;
+  width: 100%; max-width: min(520px, 62vh);
   display: flex; flex-direction: column; gap: 10px;
 }
 .pr-kb svg { width: 100%; height: auto; display: block; }
@@ -797,6 +790,321 @@ button {
   background: var(--beige); border-radius: 2px;
 }
 
+/* ---------------- el cercle de quintes ----------------
+   Una bruixola, no un poster: el cercle es dibuixa sencer pero
+   nomes se'n veu l'arc de dalt, ben gran; la resta llisca fora de
+   la finestra i les vores es fonen, com a la roda. L'ANELL GIRA
+   (girar es transposar) i el marc de la familia es queda quiet a
+   dalt, amb la tonalitat sempre al mig. */
+.cf {
+  flex: 1 1 auto; min-height: 0;
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 8px;
+}
+.cf svg {
+  width: min(100%, 520px);
+  display: block;
+  flex: none;
+  margin-bottom: -12px;   /* la bruixola, ben avall: neix de la vora */
+  touch-action: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+}
+/* mentre el dit (o l'embranzida) mana, cap transicio: la roda es teva */
+.cf svg[data-grab] .cf-ring,
+.cf svg[data-grab] .cf-cell text { transition: none; }
+/* la roda sencera: la progressio es retira i el cercle es veu tot */
+.cf.full { justify-content: center; }
+.cf.full svg {
+  width: min(92%, 56vh, 520px);
+  margin-bottom: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.cf.full .cf-seq, .cf.full .cf-coach { display: none; }
+.cf-zoom { cursor: pointer; }
+.cf-zoom-ln[hidden] { display: none; }   /* l'atribut hidden no val per a SVG sense això */
+.cf-zoom-ln {
+  fill: none;
+  stroke: var(--beige); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.cf-zoom:active .cf-zoom-ln { stroke: var(--text); }
+/* l'anell gira; les lletres es contragiren i queden sempre dretes */
+.cf-ring {
+  transform-origin: 200px 200px;
+  transition: transform .6s cubic-bezier(.2, .8, .2, 1);
+}
+.cf-cell { cursor: pointer; }
+.cf-cell path {
+  fill: rgba(244, 241, 235, .02);
+  stroke: var(--line); stroke-width: 1;
+  transition: fill .2s ease, stroke .2s ease;
+}
+.cf-cell text {
+  fill: var(--dim);
+  font-family: var(--sans); font-weight: var(--w-caps);
+  transform-box: fill-box; transform-origin: center;
+  transition: fill .2s ease, transform .6s cubic-bezier(.2, .8, .2, 1);
+  pointer-events: none;
+  user-select: none; -webkit-user-select: none;
+}
+.cf-cell .cf-num { letter-spacing: .06em; fill: transparent; }
+/* els menors, en italica: la veu que xiuxiueja */
+.cf-cell .cf-num.min { font-family: var(--instr); font-style: italic; font-weight: 400; }
+/* la marca de cada grau: el peu del IV, l'espurna del V, el sostre del iii */
+.cf-deco {
+  fill: none;
+  stroke: transparent; stroke-width: 1.4; stroke-linecap: round;
+  pointer-events: none;
+  transform-box: fill-box; transform-origin: center;
+  transition: transform .6s cubic-bezier(.2, .8, .2, 1);
+}
+.cf-cell.fam .cf-deco { stroke: var(--beige); }
+.cf-cell.fam .cf-deco.star { fill: var(--beige); stroke: none; }
+.cf-deco[hidden] { display: none; }
+.cf-cell.ton .cf-deco { stroke: #060605; }
+.cf-cell.ton .cf-deco.star { fill: #060605; stroke: none; }
+.cf-cell.fam path { fill: rgba(244, 241, 235, .05); }
+.cf-cell.fam .cf-name { fill: var(--text); }
+.cf-cell.fam .cf-num { fill: var(--beige); }
+.cf-cell.ton path { fill: var(--beige); stroke: var(--beige); }
+.cf-cell.ton .cf-name, .cf-cell.ton .cf-num { fill: #060605; }
+.cf-cell.now path { stroke: var(--beige); stroke-width: 1.8; }
+.cf-cell:active path { stroke: var(--text); }
+/* el punt de la sequencia, a cada casella apuntada */
+.cf-seqdot { fill: transparent; transition: fill .2s ease; }
+.cf-cell.seq .cf-seqdot { fill: var(--beige); }
+.cf-cell.ton.seq .cf-seqdot { fill: #060605; }
+.cf-frame {
+  fill: none;
+  stroke: var(--beige); stroke-width: 1.8; stroke-linejoin: round;
+  opacity: .9;
+  pointer-events: none;
+}
+.cf-sym {
+  fill: var(--text);
+  font-family: var(--fraun); font-weight: var(--w-big);
+  font-size: 30px; letter-spacing: -.02em;
+  pointer-events: none;
+}
+.cf-coach {
+  flex: none;
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim);
+  text-align: center;
+  animation: coach-in 1s ease .6s both;
+}
+.cf-coach[hidden] { display: none; }
+
+/* la roda d'acords, a dalt i BEN GRAN: l'espai que sobra és seu.
+   Girar el dial la reescriu en la tonalitat nova; tocar-ne un obre
+   la fitxa (o el treu, mentre s'està creant) */
+.cf-seq {
+  position: relative;   /* la creueta va al racó, absoluta: no descentra */
+  flex: 1 1 auto;
+  min-height: 84px;
+  width: 100%; max-width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+  padding: 0 6px;
+}
+/* la roda te tota la meitat de dalt: com menys acords, mes grans.
+   La mida viu a --chip i cada quantitat te la seva distribucio. */
+.cf-chips {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 6px 22px;
+  max-width: 100%;
+  --chip: 2rem;
+}
+.cf-chips.n1 { --chip: 4rem; }
+.cf-chips.n2 { --chip: 3.4rem; gap: 6px 44px; }
+.cf-chips.n3 { --chip: 2.9rem; gap: 6px 36px; }
+.cf-chips.n4 {
+  --chip: 2.9rem;
+  display: grid; grid-template-columns: repeat(2, auto);
+  justify-content: center; justify-items: center;
+  gap: 10px 56px;
+}
+.cf-chips.n5, .cf-chips.n6 {
+  --chip: 2.4rem;
+  display: grid; grid-template-columns: repeat(3, auto);
+  justify-content: center; justify-items: center;
+  gap: 10px 40px;
+}
+.cf-chips.n7, .cf-chips.n8 {
+  --chip: 2.1rem;
+  display: grid; grid-template-columns: repeat(4, auto);
+  justify-content: center; justify-items: center;
+  gap: 10px 30px;
+}
+.cf-ctrl {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+.cf-chip {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: 6px 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.cf-chip b {
+  font-weight: var(--w-big); font-size: var(--chip, 2rem); letter-spacing: -.02em;
+  color: var(--text); line-height: 1;
+}
+.cf-chip span {
+  font-size: calc(var(--chip, 2rem) * .34); line-height: 1;
+}
+
+/* el full de progressions d'exemple: el cifrat gran, el nom petit */
+.sheet.progs { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.prog-row {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: 14px 6px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  animation: opt-in .32s cubic-bezier(.2,.8,.2,1) both;
+  animation-delay: calc(var(--i, 0) * 24ms);
+}
+.prog-row b {
+  font-family: var(--fraun); font-weight: 700;
+  font-size: 1.25rem; letter-spacing: .04em; line-height: 1;
+  color: var(--text);
+}
+.prog-row span {
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--beige);
+}
+.prog-row:active b { color: var(--beige); }
+
+/* ---------------- la inscripcio llatina dels graus ----------------
+   Majors en rodona (Fraunces); menors en italica (Instrument).
+   Cada grau, la seva marca — vegeu ESTIL.md. */
+.grau {
+  position: relative;
+  font-family: var(--fraun); font-weight: 700; font-style: normal;
+  letter-spacing: .05em;
+  color: var(--beige);
+}
+.grau.min {
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  letter-spacing: .02em;
+}
+.grau.g-vi { opacity: .75; }                     /* la llum trista */
+.grau.g-iii {                                    /* tres germans, un sostre */
+  text-decoration: overline;
+  text-decoration-color: var(--beige);
+  text-decoration-thickness: 1px;
+}
+.grau.g-iv::after {                              /* el peu de la casa */
+  content: ""; position: absolute;
+  left: -.06em; right: -.02em; bottom: -3px; height: 1.5px;
+  background: var(--beige);
+}
+.grau.g-v::after {                               /* l'espurna, dibuixada */
+  content: "";
+  position: absolute; top: -.5em; right: -.85em;
+  width: .55em; height: .55em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.cf-chip.fora span { color: var(--dim); }
+.cf-chip:active b { color: var(--beige); }
+/* creant la roda: els xips es poden treure */
+.cf-chip.rec b { border-bottom: 1px dashed var(--dim); padding-bottom: 2px; }
+.cf-hint {
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: 1.35rem; letter-spacing: .01em; text-transform: none;
+  color: var(--muted);
+  padding: 6px 0;
+}
+/* com el boto de compartir del joc: un bloc, sol i centrat */
+.cf-round, .cf-done {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 10px 16px;
+  background: var(--text); color: var(--bg);
+  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  border-radius: 3px;
+}
+.cf-done { background: var(--beige); color: #060605; }
+.cf-round.fosc { background: none; color: var(--beige); border: 1px solid var(--line); }
+.cf-round:active, .cf-done:active { background: var(--beige); color: #060605; }
+.cf-round.fosc:active { background: none; color: var(--text); border-color: var(--beige); }
+.cf-clear {
+  position: absolute; right: 2px; top: 2px;
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: 10px;
+  color: var(--dim); font-size: 1.05rem; line-height: 1;
+}
+.cf-clear:active { color: var(--beige); }
+
+/* a dalt de la roda: COM ES TOCA l'acord viu, no el seu nom.
+   El format de l'app en petit, amb el canvi guitarra/piano. */
+.panel[data-ins="cercle"] .panel-inner { padding-top: calc(64px + env(safe-area-inset-top)); }
+.cfp {
+  width: 100%;
+  display: flex; flex-direction: column; gap: 14px;
+}
+/* la fitxa de com es toca: GRAN, que es vegi de debo */
+.sheet.card { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.card-x {
+  position: absolute; top: 6px; right: 2px; z-index: 2;
+  width: 48px; height: 48px;
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+}
+.card-x svg { width: 17px; height: 17px; display: block; }
+.card-x:active { color: var(--beige); }
+.sheet.card .cfp-sym { font-size: 2.6rem; }
+.sheet.card .cfp-kbs { flex-direction: column; gap: 12px; }
+.sheet.card .cfp-kbs .kb { width: 100%; }
+.sheet.card .cfp-gtr { height: min(46vh, 380px); }
+.sheet.card .cfp-gtr .diagram.narrow { max-width: 260px; }
+/* l'extensió, com a peça del nom: fonamental blanca, sufix beix */
+.cfp-ext { font-style: normal; font-size: .55em; color: var(--beige); letter-spacing: -.02em; }
+/* les extensions per personalitzar l'acord de la ronda */
+.card-exts { margin-top: 8px; }
+.sheet.card .opt-grid.tier1 .opt-big { font-size: 1.5rem; }
+.cfp-head { display: flex; align-items: baseline; gap: 10px; }
+.cfp-sym {
+  font-size: 1.7rem; font-weight: var(--w-big); letter-spacing: -.03em;
+  line-height: 1; color: var(--text);
+}
+.cfp-deg {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: .55rem; font-weight: var(--w-caps); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--beige);
+}
+.cfp-deg .grau { font-size: 1rem; text-transform: none; letter-spacing: .05em; }
+.cfp-fn {
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: .85rem; letter-spacing: .01em; text-transform: none;
+  color: var(--beige);
+}
+.cfp-sw { margin-left: auto; display: flex; gap: 14px; }
+.cfp-ins {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: 4px 0 3px;
+  font-size: .55rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim);
+  border-bottom: 2px solid transparent;
+}
+.cfp-ins.on { color: var(--beige); border-bottom-color: var(--beige); }
+.cfp-kbs { display: flex; align-items: flex-start; gap: 12px; }
+.cfp-kbs .kb { flex: 1 1 0; min-width: 0; }
+.cfp-gtr { height: 148px; display: flex; justify-content: center; }
+.cfp-gtr .diagram.narrow { max-width: 150px; }
+
+:root[data-theme="light"] .cf-cell path { fill: rgba(20, 18, 16, .028); }
+:root[data-theme="light"] .cf-cell.fam path { fill: rgba(20, 18, 16, .055); }
+:root[data-theme="light"] .cf-cell.ton path { fill: var(--beige); stroke: var(--beige); }
+:root[data-theme="light"] .cf-cell.ton .cf-name,
+:root[data-theme="light"] .cf-cell.ton .cf-num { fill: #F4F1EB; }
+:root[data-theme="light"] .cf-cell.ton.seq .cf-seqdot { fill: #F4F1EB; }
+:root[data-theme="light"] .cf-cell.ton .cf-deco { stroke: #F4F1EB; }
+:root[data-theme="light"] .cf-cell.ton .cf-deco.star { fill: #F4F1EB; stroke: none; }
+
 /* ---------------- móvil en horizontal ---------------- */
 @media (max-height: 480px) {
   /* aqui l'alcada es or, pero l'acord tambe baixa i creix: mes peca de
@@ -834,6 +1142,21 @@ button {
 
   /* el mastil ajagut pot ser ben ample */
   .panel[data-ins="guitar"] .diagram.narrow { max-width: min(620px, 88vw); }
+
+  /* eines en apaisat: costat a costat */
+  .tools-split { flex-direction: row; }
+  .tools-split .tool-inner { flex: 1 1 50%; min-width: 0; }
+  .tools-split .tool-inner + .tool-inner { border-top: 0; border-left: 1px solid var(--line); }
+
+  /* el cercle, en apaisat: com-es-toca a l'esquerra, el dial a la
+     dreta, que en columna no hi cabrien */
+  .panel[data-ins="cercle"] .panel-inner { padding-top: calc(10px + env(safe-area-inset-top)); }
+  .cf { gap: 6px; }
+  .cf svg { width: min(100%, calc((100vh - 118px) * 1.32)); }
+  .cf-seq { min-height: 34px; flex: none; gap: 2px 16px; }
+  .cf-chip b { font-size: 1.2rem; }
+  .cf-hint, .cf-round, .cf-done { font-size: .58rem; }
+  .cf-coach { display: none; }
 }
 
 /* ---------------- pantallas anchas ----------------
@@ -848,8 +1171,10 @@ button {
 }
 
 /* escriptori de debò: més marc, l'acord respira i el piano posa
-   les dues mans costat a costat, com el piano de veritat */
-@media (min-width: 900px) and (min-height: 481px) {
+   les dues mans costat a costat, com el piano de veritat.
+   Només en apaisat: en una tauleta vertical, les mans una sobre
+   l'altra omplen millor la pàgina. */
+@media (min-width: 900px) and (min-height: 481px) and (orientation: landscape) {
   :root { --top-h: 244px; }
   .panel-inner { max-width: 1000px; padding-top: calc(var(--top-h) + 16px); }
   .pinned-top .pinned-inner { max-width: 1000px; }

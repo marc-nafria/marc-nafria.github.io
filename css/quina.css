@@ -61,7 +61,10 @@
 .q-title {
   flex: 1 1 auto; min-height: 0;
   margin: 0;
-  padding-top: calc(56px + env(safe-area-inset-top));
+  /* el punt d'escoltar ha de guanyar SEMPRE el toc, encara que el
+     lockup desbordi sobre l'escenari en pantalles baixes */
+  position: relative; z-index: 2;
+  padding-top: calc(min(56px, 5vh) + env(safe-area-inset-top));
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   transition: opacity .45s ease;
   animation: q-in .55s cubic-bezier(.2, .8, .2, 1) .05s both;
@@ -82,7 +85,7 @@
 .q-title .t1 {
   display: block; text-align: left;
   font-family: var(--instr); font-style: italic; font-weight: 400;
-  font-size: clamp(3.1rem, 16vw, 4.4rem);
+  font-size: clamp(2.2rem, min(16vw, 6.5vh), 4.4rem);
   letter-spacing: .01em; line-height: 1;
   color: var(--text);
 }
@@ -90,7 +93,7 @@
   display: block; text-align: right;
   margin: .55em 0 .4em;
   padding-right: .1em;
-  font-size: clamp(.95rem, 4.4vw, 1.25rem);
+  font-size: clamp(.8rem, min(4.4vw, 2.1vh), 1.25rem);
   font-weight: var(--w-caps); letter-spacing: .46em; text-transform: uppercase;
   text-indent: .46em;   /* compensa el tracking del final de linia */
   color: var(--beige);
@@ -99,7 +102,7 @@
   display: block; text-align: center;
   margin-top: -.04em;
   font-family: var(--fraun);
-  font-size: clamp(4.8rem, 25vw, 6.8rem);
+  font-size: clamp(3.2rem, min(25vw, 10vh), 6.8rem);
   font-weight: var(--w-big); letter-spacing: -.04em; line-height: .82;
   color: var(--text);
 }
@@ -148,8 +151,8 @@
   position: relative;
   display: block;
   width: 100%;
-  height: 96px;
-  margin-top: 18px;
+  height: min(96px, 10vh);
+  margin-top: min(18px, 2vh);
   animation: q-coach-in 1s ease .9s both;
 }
 .q-coach[hidden] { visibility: hidden; }
@@ -205,7 +208,7 @@
   padding: 8px 0;
 }
 .q-name {
-  min-height: 56px;
+  min-height: min(56px, 6.5vh);
   display: flex; align-items: flex-end;
   font-size: 3rem; font-weight: var(--w-big); letter-spacing: -.02em; line-height: 1;
   color: var(--beige);
@@ -217,7 +220,11 @@
 }
 
 .q-kb { width: 100%; display: flex; flex-direction: column; gap: 12px; }
-.q-kb svg { width: 100%; height: auto; display: block; }
+.q-kb svg {
+  width: 100%; height: auto; display: block;
+  /* en pantalles curtes, el teclat cedeix: el titol no es retalla mai */
+  max-height: 24vh;
+}
 .q-kb svg rect { transition: fill .07s linear, stroke .07s linear; }
 .q-kb svg g[data-midi] { transition: transform .09s ease; }
 .q-kb .q-shake { animation: q-shake .22s ease; }

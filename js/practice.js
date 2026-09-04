@@ -22,16 +22,24 @@
 
   /* Los acordes disponibles viven en data/chords.json (global.ChordData). */
   var INV_NAMES = ['fonamental', '1a inversió', '2a inversió', '3a inversió', '4a inversió'];
-  /* l'ordre del carrusel: eines als extrems, instruments al mig */
-  var PANELS = ['tuner', 'guitar', 'piano', 'metronome'];
+  /* l'ordre del carrusel: eines als extrems, L'instrument al mig.
+     Nomes un: guitarra o piano es tria a la configuracio, i tota la
+     plataforma es d'aquell instrument (res duplicat). */
+  var PANELS = ['eines', 'piano', 'cercle'];
+  function panelsFor() { return ['eines', state.ins, 'cercle']; }
   var INSTRUMENTS = { guitar: true, piano: true };
+  /* plans on l'acord de dalt segueix visible (al cercle no: allà dalt
+     hi va COM ES TOCA l'acord, no el seu nom) */
+  var TOPPED = { guitar: true, piano: true };
+  /* plans amb roda a sota (el cercle es gira a si mateix) */
+  var WHEELED = ['guitar', 'piano'];
 
   var RH_BASE = 60;   // la derecha toca alrededor de C4
   var LH_BASE = 45;   // la izquierda, una décima por debajo
 
   var OUT_MS = 130;   // lo que tarda el desenfoque de salida
 
-  var state = { rootPc: 0, quality: 'maj', ins: 'guitar', posG: 0, posP: 0 };
+  var state = { rootPc: 0, quality: 'maj', ins: 'guitar', posG: 0, posP: 0, cIdx: 0, cSeq: [] };
   var activeId = 'guitar';
   var toolHandles = {};
 
@@ -59,11 +67,20 @@
     if (Theory.CHORDS[q]) { state.quality = q; }
     var ins = read('ins', 'piano');
     state.ins = INSTRUMENTS[ins] ? ins : 'piano';
+    PANELS = panelsFor();
+    var ck = parseInt(read('ckey', '0'), 10);
+    state.cIdx = (!isNaN(ck) && ck >= 0 && ck < 12) ? ck : 0;
+    state.cSeq = [];
+    try {
+      var sq = JSON.parse(read('cseq', '[]'));
+      if (Object.prototype.toString.call(sq) === '[object Array]') {
+        state.cSeq = sq.filter(function (x) {
+          return x && typeof x.d === 'number' && (x.ring === 'in' || x.ring === 'out');
+        }).slice(0, 8);
+      }
+    } catch (e) { /* res */ }
     state.theme = read('theme', 'dark') === 'light' ? 'light' : 'dark';
     applyTheme(state.theme);
-    var f = read('font', 'outfit');
-    state.font = FONTS.some(function (x) { return x.id === f; }) ? f : 'outfit';
-    applyFont(state.font);
     var v = read('voice', 'pad');
     state.voice = VOICES.some(function (x) { return x.id === v; }) ? v : 'pad';
     if (global.Sound && Sound.setVoice) { Sound.setVoice(state.voice); }
@@ -88,12 +105,9 @@
     if (scheme) { scheme.setAttribute('content', light ? 'light' : 'dark'); }
   }
 
-  var FONTS = [
-    { id: 'outfit', name: 'Outfit', sample: 'Cmaj' },
-    { id: 'fraunces', name: 'Fraunces', sample: 'Cmaj' },
-    { id: 'instrument', name: 'Instrument', sample: 'Cmaj' }
-  ];
-
+  /* Les tres lletres NO es trien: son rols fixos (vegeu ESTIL.md).
+     Outfit es la veu de l'app, Fraunces la de la musica i
+     Instrument Serif la que xiuxiueja. */
   var VOICES = [
     { id: 'pad', name: 'coixí' },
     { id: 'ep', name: 'elèctric' }
@@ -105,13 +119,6 @@
     if (global.Sound && Sound.setVoice) { Sound.setVoice(id); }
   }
 
-  function applyFont(id) {
-    var root = document.documentElement;
-    if (!root) { return; }
-    if (id && id !== 'outfit') { root.setAttribute('data-font', id); }
-    else { root.removeAttribute('data-font'); }
-  }
-
   function setTheme(name) {
     state.theme = name === 'light' ? 'light' : 'dark';
     write('theme', state.theme);
@@ -120,10 +127,22 @@
     change(function () { applyTheme(state.theme); });
   }
 
-  function setFont(id) {
-    state.font = id;
-    write('font', id);
-    change(function () { applyFont(id); });
+  /* triar l'instrument: el deck es refa amb nomes aquell pla */
+  function setInstrument(id) {
+    if (!INSTRUMENTS[id] || state.ins === id) { return; }
+    if (toolHandles[activeId] && toolHandles[activeId].leave) { toolHandles[activeId].leave(); }
+    if (INSTRUMENTS[activeId]) { activeId = id; }
+    state.ins = id;
+    write('ins', id);
+    PANELS = panelsFor();
+    cercleInst = null;   /* el dial reneix dins el deck nou */
+    shell = buildShell(document.getElementById('app'));
+    render(false);
+    var idx = PANELS.indexOf(activeId);
+    if (idx === -1) { activeId = id; idx = PANELS.indexOf(id); }
+    if (shell.deck.clientWidth) { shell.deck.scrollLeft = idx * shell.deck.clientWidth; }
+    shell.root.classList.toggle('on-tool', !TOPPED[activeId]);
+    if (toolHandles[activeId] && toolHandles[activeId].enter) { toolHandles[activeId].enter(); }
   }
 
   /* ---------------- utilidades ---------------- */
@@ -300,7 +319,7 @@
 
   var WHITE_PCS = [0, 2, 4, 5, 7, 9, 11];
   var KB_KEYS = 10;          // teclas blancas por teclado, fijas
-  var KB_HEIGHT = 150;       // alto de las blancas en el dibujo
+  var KB_HEIGHT = 178;       // alto de las blancas: tecla llarga, de piano de debo
 
   function isWhite(midi) { return WHITE_PCS.indexOf(Theory.mod12(midi)) !== -1; }
   function whiteDown(midi) {
@@ -781,6 +800,17 @@
         ]);
       };
 
+      /* l'instrument: la tria mare de la plataforma */
+      var instr = h('div', { class: 'opt-grid modes' });
+      [['piano', 'piano'], ['guitar', 'guitarra']].forEach(function (m) {
+        instr.appendChild(option(m[1], {
+          pressed: state.ins === m[0],
+          index: idx++,
+          onPick: function () { closeSheet(); setInstrument(m[0]); }
+        }));
+      });
+      wrap.appendChild(group('\u266C', instr));
+
       var modes = h('div', { class: 'opt-grid modes' });
       [['dark', 'fosc'], ['light', 'clar']].forEach(function (m) {
         modes.appendChild(option(m[1], {
@@ -790,18 +820,6 @@
         }));
       });
       wrap.appendChild(group('\u25D0', modes));
-
-      var fonts = h('div', { class: 'opt-grid fonts' });
-      FONTS.forEach(function (f) {
-        var btn = option(f.name, {
-          pressed: state.font === f.id,
-          index: idx++,
-          onPick: function () { setFont(f.id); closeSheet(); }
-        });
-        btn.classList.add('f-' + f.id);
-        fonts.appendChild(btn);
-      });
-      wrap.appendChild(group('Aa', fonts));
 
       /* el so: la veu amb que sona tot el que toques */
       var voices = h('div', { class: 'opt-grid voices' });
@@ -912,11 +930,13 @@
       return;
     }
     busy = true;
-    blurOut(shell.panels.guitar.inner);
+    if (shell.panels.guitar) { blurOut(shell.panels.guitar.inner); }
     /* al piano, els nius son fixos: es desenfoquen els teclats de dins,
        no els nius (que la classe s'hi quedaria per sempre) */
-    blurOut(shell.panels.piano.kbL);
-    blurOut(shell.panels.piano.kbR);
+    if (shell.panels.piano) {
+      blurOut(shell.panels.piano.kbL);
+      blurOut(shell.panels.piano.kbR);
+    }
     if (!keep.keepTitle) { blurOut(shell.topInner); }
     /* la roda de baix no es desdibuixa mai: ja te la seva propia
        manera de dir que hi ha, i el blur alla no s'entenia */
@@ -940,7 +960,7 @@
     stopArp();
     if (toolHandles[prev] && toolHandles[prev].leave) { toolHandles[prev].leave(); }
     if (toolHandles[id] && toolHandles[id].enter) { toolHandles[id].enter(); }
-    shell.root.classList.toggle('on-tool', !INSTRUMENTS[id]);
+    shell.root.classList.toggle('on-tool', !TOPPED[id]);
     if (INSTRUMENTS[id]) {
       state.ins = id;
       write('ins', id);
@@ -978,7 +998,7 @@
     if (deck.clientWidth) {
       var near = Math.round(deck.scrollLeft / deck.clientWidth);
       near = Math.max(0, Math.min(PANELS.length - 1, near));
-      shell.root.classList.toggle('on-tool', !INSTRUMENTS[PANELS[near]]);
+      shell.root.classList.toggle('on-tool', !TOPPED[PANELS[near]]);
     }
     if (scrollTimer) { global.clearTimeout(scrollTimer); }
     scrollTimer = global.setTimeout(function () {
@@ -994,11 +1014,23 @@
     var deck = h('div', { class: 'deck' });
     var panels = {};
     if (global.Tools) {
-      toolHandles.tuner = global.Tools.tuner();
-      toolHandles.metronome = global.Tools.metronome();
+      /* afinador i tempo comparteixen un sol pla, partit per la meitat */
+      var tn = global.Tools.tuner();
+      var mt = global.Tools.metronome();
+      toolHandles.eines = {
+        el: h('div', { class: 'tools-split' }, [tn.el, mt.el]),
+        enter: function () {
+          if (tn.enter) { tn.enter(); }
+          if (mt.enter) { mt.enter(); }
+        },
+        leave: function () {
+          if (tn.leave) { tn.leave(); }
+          if (mt.leave) { mt.leave(); }
+        }
+      };
     }
     PANELS.forEach(function (p) {
-      if (INSTRUMENTS[p]) {
+      if (INSTRUMENTS[p] || p === 'cercle') {
         /* l'escenari (diagrames) i, just a sota, la roda de la seccio:
            es seva, hi llisca i queda a l'altura que li toca */
         var stage = h('div', { class: 'stage' });
@@ -1033,15 +1065,271 @@
     return { root: root, deck: deck, panels: panels, topInner: topInner };
   }
 
+  /* el cercle de quintes: l'acord viu de l'app hi surt marcat, i el
+     que s'hi toca puja com a acord de l'app i s'apunta a la seqüència.
+     La instància persisteix entre renders: així la roda pot GIRAR amb
+     transició quan canvia la tonalitat, en lloc de renéixer. */
+  var cercleInst = null;
+  var cRec = false;   /* s'està creant una roda (no es guarda: és un gest) */
+
+  function cercleOpts() {
+    return {
+      keyIdx: state.cIdx,
+      curPc: state.rootPc,
+      curQuality: state.quality,
+      seq: state.cSeq,
+      rec: cRec,
+      coach: !read('coachC', '')
+    };
+  }
+
+  function liveChord(info) {
+    state.rootPc = info.pc;
+    state.quality = info.quality;
+    state.posG = 0;
+    state.posP = 0;
+    write('root', String(state.rootPc));
+    write('quality', info.quality);
+  }
+
+  /* progressions de la casa: per aprendre'n el gust, amb alguna
+     modulacio (acords de fora que estiren cap a una tonalitat veïna) */
+  var PROGS = [
+    { name: 'la de sempre', label: 'I · V · vi · IV',
+      items: [{ d: 0, ring: 'out' }, { d: 1, ring: 'out' }, { d: 0, ring: 'in' }, { d: -1, ring: 'out' }] },
+    { name: 'anys 50', label: 'I · vi · IV · V',
+      items: [{ d: 0, ring: 'out' }, { d: 0, ring: 'in' }, { d: -1, ring: 'out' }, { d: 1, ring: 'out' }] },
+    { name: 'jazz que torna', label: 'ii7 · V7 · Imaj7',
+      items: [{ d: -1, ring: 'in', q: 'min7' }, { d: 1, ring: 'out', q: 'dom7' }, { d: 0, ring: 'out', q: 'maj7' }] },
+    { name: 'andalusa', label: 'vi · V · IV · III',
+      items: [{ d: 0, ring: 'in' }, { d: 1, ring: 'out' }, { d: -1, ring: 'out' }, { d: 4, ring: 'out' }] },
+    { name: 'dominant secundària', label: 'I · III7 · vi · IV',
+      items: [{ d: 0, ring: 'out' }, { d: 4, ring: 'out', q: 'dom7' }, { d: 0, ring: 'in' }, { d: -1, ring: 'out' }] },
+    { name: 'cap a la dominant', label: 'I · IV · II7 · V',
+      items: [{ d: 0, ring: 'out' }, { d: -1, ring: 'out' }, { d: 2, ring: 'out', q: 'dom7' }, { d: 1, ring: 'out' }] },
+    { name: 'pachelbel', label: 'I · V · vi · iii · IV · I · IV · V',
+      items: [{ d: 0, ring: 'out' }, { d: 1, ring: 'out' }, { d: 0, ring: 'in' }, { d: 1, ring: 'in' },
+        { d: -1, ring: 'out' }, { d: 0, ring: 'out' }, { d: -1, ring: 'out' }, { d: 1, ring: 'out' }] }
+  ];
+
+  function openProgSheet() {
+    if (sheetEl) { closeSheet(); }
+    openKind = 'progs';
+    var rows = PROGS.map(function (pg, i) {
+      return h('button', {
+        class: 'prog-row', type: 'button', style: '--i:' + i,
+        onclick: function () {
+          state.cSeq = pg.items.map(function (it) {
+            return { d: it.d, ring: it.ring, q: it.q };
+          });
+          write('cseq', JSON.stringify(state.cSeq));
+          cRec = false;
+          closeSheet();
+          render(false);
+        }
+      }, [
+        h('b', { text: pg.label }),
+        h('span', { text: pg.name })
+      ]);
+    });
+    sheetEl = h('div', { class: 'sheet-wrap' }, [
+      h('div', { class: 'sheet-backdrop', onclick: function () { closeSheet(); } }),
+      h('div', {
+        class: 'sheet progs', 'data-kind': 'progs', role: 'dialog', 'aria-modal': 'true',
+        'aria-label': 'Progressions d’exemple'
+      }, rows)
+    ]);
+    document.body.appendChild(sheetEl);
+  }
+
+  function cercleContent() {
+    if (!cercleInst) {
+      cercleInst = Cercle.create({
+        onTap: function (info) {
+          if (cRec) {
+            /* creant la roda: cada toc s'hi apunta (vuit com a molt:
+               una roda es un cicle, no una llista de la compra) */
+            if (state.cSeq.length < 8) {
+              state.cSeq.push({ d: info.d, ring: info.ring });
+              write('cseq', JSON.stringify(state.cSeq));
+            }
+            liveChord(info);
+            render(false);
+            return;
+          }
+          /* explorant: el toc ensenya com es toca */
+          liveChord(info);
+          render(false);
+          openChordCard();
+        },
+        onChip: function (idx, info) {
+          if (cRec) {
+            /* mentre es crea, tocar-ne un de la línia el treu */
+            state.cSeq.splice(idx, 1);
+            write('cseq', JSON.stringify(state.cSeq));
+            render(false);
+            return;
+          }
+          /* la ronda fixada: la fitxa d'aquell acord, amb l'extensió editable */
+          liveChord(info);
+          render(false);
+          openChordCard(idx);
+        },
+        decorate: function (info, item) {
+          if (!item || !item.q || !Theory.CHORDS[item.q]) { return null; }
+          return {
+            quality: item.q,
+            name: Theory.pcName(info.pc, { flats: useFlats(info.pc) }) + Theory.CHORDS[item.q].suffix
+          };
+        },
+        onExplore: function () {
+          openProgSheet();
+        },
+        onRound: function () {
+          cRec = true;
+          state.cSeq = [];
+          write('cseq', '[]');
+          render(false);
+        },
+        onDone: function () {
+          cRec = false;
+          render(false);
+        },
+        onClear: function () {
+          state.cSeq = [];
+          write('cseq', '[]');
+          render(false);
+        },
+        onKey: function (n) {
+          write('coachC', '1');
+          state.cIdx = n;
+          write('ckey', String(n));
+          if (cercleInst) { cercleInst.update(cercleOpts()); }
+        }
+      });
+    }
+    cercleInst.update(cercleOpts());
+    return cercleInst.el;
+  }
+
+  /* la fitxa emergent: COM ES TOCA l'acord viu amb L'instrument triat
+     a la configuracio, en el format de l'app pero reduit */
+  /* editIdx: si ve d'una ronda fixada, la fitxa duu l'acord EN GRAN amb
+     l'extensi\u00f3 com a pe\u00e7a pr\u00f2pia, i les extensions per personalitzar-lo */
+  function openChordCard(editIdx) {
+    if (sheetEl) { closeSheet(); }
+    openKind = 'card';
+
+    var slot = h('div', { class: 'card-slot' });
+    var editing = typeof editIdx === 'number' && !!state.cSeq[editIdx];
+
+    function inner() {
+      var deg = Cercle.degreeFor(state.rootPc, state.quality, state.cIdx);
+      var body;
+      if (state.ins === 'piano') {
+        var rhAll = voicings(RH_BASE);
+        var rh = rhVoicing(Math.min(state.posP, rhAll.length - 1));
+        var lh = lhVoicing(rh[0]);
+        body = h('div', { class: 'cfp-kbs' }, [keyboard(lh, 'L'), keyboard(rh, 'R')]);
+      } else {
+        body = h('div', { class: 'cfp-gtr' }, guitarContent());
+      }
+
+      /* l'acord en gran, partit com el t\u00edtol: fonamental + extensi\u00f3 */
+      var big = h('b', { class: 'cfp-sym' }, [
+        h('span', { text: spell(state.rootPc) }),
+        h('i', { class: 'cfp-ext', text: suffix() || 'maj' })
+      ]);
+
+      /* el grau amb la seva inscripci\u00f3, i la funci\u00f3 en la veu que
+         xiuxiueja (vegeu ESTIL.md) */
+      var degEl;
+      if (deg) {
+        var minor = /^[a-z]/.test(deg.num);
+        degEl = h('span', { class: 'cfp-deg' }, [
+          h('span', {
+            class: 'grau' + (minor ? ' min' : '') + ' g-' + deg.num.toLowerCase(),
+            text: deg.num
+          }),
+          h('i', { class: 'cfp-fn', text: deg.fn })
+        ]);
+      } else {
+        degEl = h('span', { class: 'cfp-deg' }, [
+          h('i', { class: 'cfp-fn', text: 'fora de la tonalitat' })
+        ]);
+      }
+
+      var kids = [
+        h('div', { class: 'cfp-head' }, [big, degEl]),
+        body
+      ];
+
+      if (editing) {
+        var extWrap = h('div', { class: 'card-exts' });
+        var oi = 0;
+        [1, 2, 3].forEach(function (tier) {
+          var types = global.ChordData.types.filter(function (tp) { return (tp.tier || 3) === tier; });
+          if (!types.length) { return; }
+          var grid = h('div', { class: 'opt-grid exts tier' + tier });
+          types.forEach(function (tp) {
+            grid.appendChild(option(tp.suffix || 'maj', {
+              pressed: tp.id === state.quality,
+              index: oi++,
+              onPick: function () {
+                var item = state.cSeq[editIdx];
+                if (!item) { return; }
+                item.q = tp.id;
+                write('cseq', JSON.stringify(state.cSeq));
+                state.quality = tp.id;
+                write('quality', tp.id);
+                render(false);
+                paintCard();
+                if (global.Cercle && Cercle.play) { Cercle.play(state.rootPc, tp.id); }
+              }
+            }));
+          });
+          extWrap.appendChild(grid);
+        });
+        kids.push(extWrap);
+      }
+
+      return h('div', { class: 'cfp' }, kids);
+    }
+
+    function paintCard() { fill(slot, [inner()]); }
+    paintCard();
+
+    /* la creu de sortir: dibuixada, al racó de la fitxa */
+    var closeX = h('button', {
+      class: 'card-x', type: 'button', 'aria-label': 'Tancar la fitxa',
+      html: '<svg viewBox="0 0 24 24" aria-hidden="true">'
+        + '<path d="M5.5 5.5 L18.5 18.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+        + '<path d="M18.5 5.5 L5.5 18.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'
+        + '</svg>',
+      onclick: function () { closeSheet(); }
+    });
+
+    sheetEl = h('div', { class: 'sheet-wrap' }, [
+      h('div', { class: 'sheet-backdrop', onclick: function () { closeSheet(); } }),
+      h('div', {
+        class: 'sheet card', 'data-kind': 'card', role: 'dialog', 'aria-modal': 'true',
+        'aria-label': 'Com es toca ' + symbol()
+      }, [closeX, slot])
+    ]);
+    document.body.appendChild(sheetEl);
+  }
+
   function render(fx, o) {
     var keep = o || {};
-    fill(shell.panels.guitar.inner, guitarContent(), fx);
-    paintPiano(fx);
+    if (shell.panels.guitar) { fill(shell.panels.guitar.inner, guitarContent(), fx); }
+    if (shell.panels.piano) {
+      paintPiano(fx);
+      fill(shell.panels.piano.arpHost, [arpSlider()]);
+    }
+    fill(shell.panels.cercle.inner, [cercleContent()], fx);
     fill(shell.topInner, titleContent(), fx && !keep.keepTitle);
 
-    fill(shell.panels.piano.arpHost, [arpSlider()]);
-
-    Object.keys(INSTRUMENTS).forEach(function (ins) {
+    WHEELED.filter(function (ins) { return shell.panels[ins]; }).forEach(function (ins) {
       var host = shell.panels[ins].wheelHost;
       if (keep.keepWheel && wheels[ins]) {
         /* mateixa roda: nomes canvia quina peca esta triada */
@@ -1107,6 +1395,7 @@
     start: start,
     state: state,
     refresh: function () { render(false); },
+    setInstrument: setInstrument,
     goTo: goTo,
     /* solo para los tests: la lógica musical, con el estado actual */
     _music: {

@@ -244,15 +244,11 @@
       paint(-1);
     }
 
-    /* iOS no deixa engegar l'audio ni el microfon sense un toc de
-       l'usuari: en arribar al pla, es demana el toc; un cop donat el
-       permis, les tornades ja engeguen soles. */
-    var unlocked = false;
-
+    /* el microfon NOMES es demana en prémer el boto: mai en arribar
+       al pla ni amb un toc qualsevol */
     function arm() {
       if (stream) { return; }
-      if (unlocked) { start(); return; }
-      hintEl.textContent = 'toca per activar el micròfon';
+      hintEl.textContent = 'per afinar, activa el micròfon';
       micBtn.hidden = false;
     }
 
@@ -276,7 +272,6 @@
         analyser.fftSize = BUF_SIZE;
         buffer = new Float32Array(analyser.fftSize);
         source.connect(analyser);          /* nomes analisi: res no va a l'altaveu */
-        unlocked = true;
         micBtn.hidden = true;
         hintEl.textContent = '';
         lastDetect = 0;
@@ -290,8 +285,6 @@
     var el = h('div', { class: 'tool-inner', 'data-tool': 'tuner' }, [
       noteEl, ticksEl, centsEl, hintEl, micBtn
     ]);
-    /* qualsevol toc del pla val com a gest per obrir el microfon */
-    el.addEventListener('pointerdown', function () { start(); });
 
     return {
       el: el,
