@@ -19,12 +19,9 @@ L'app té **dues velocitats**:
 - **Explorar** — llisques i penses: el cercle (tonalitat, família,
   rondes d'acords), l'escala (graus i funcions). Aquí es descobreix.
 
-I **un ritual**: l'oïda. L'acord del dia per venir cada dia, i els
-exercicis per entrenar. La música s'entén amb l'orella o no s'entén.
-
-Tres unitats que ho mantenen endreçat: **una tonalitat** (la del
-cercle mana a tota l'app), **un instrument** (piano o guitarra, triat
-a configuració, res duplicat), **una oïda** (una sola porta d'entrada).
+Dues unitats que ho mantenen endreçat: **una tonalitat** (la del
+cercle mana a tota l'app) i **un instrument** (piano o guitarra,
+triat a configuració, res duplicat).
 
 ## Els fonaments
 
@@ -93,6 +90,14 @@ en HTML, el peu és el subratllat de la casa, l'espurna és el caràcter
 - El dial gira amb **inèrcia de roda de debò** (fricció exponencial,
   encaix a la tonalitat més propera). Mentre el dit mana, cap transició.
 - `prefers-reduced-motion`: tot quiet, sempre.
+
+## Els rètols de camí
+
+Als peus del pla de l'instrument, dos **senyals de fusta**: rectangle
+acabat en punxa amb un pal curt que s'esvaeix cap avall — eines a
+l'esquerra, «explora!» a la dreta. Són l'única llicència d'**emoji**
+de la casa (com a senyal de trànsit); tota la resta d'icones es
+dibuixa a mà.
 
 ## Les icones
 

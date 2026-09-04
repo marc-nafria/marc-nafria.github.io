@@ -169,6 +169,14 @@ function pickOpt(label) {
   o.dispatch('click');
 }
 
+/* ---- el salt a l'acord del dia ---- */
+guard('el salt a l’acord del dia', () => {
+  const a = app.querySelectorAll('.quina-btn')[0];
+  ok(!!a && a.tagName === 'button' && /dia/.test(a.textContent),
+    'el lockup en miniatura obre el joc diari');
+  ok(a.querySelectorAll('.qm-dot').length === 1, 'amb el seu punt beix');
+});
+
 /* ---- estructura de capas ---- */
 guard('estructura', () => {
   ok(app.querySelectorAll('.deck').length === 1, 'hi ha un deck lliscant');
@@ -192,14 +200,16 @@ guard('estructura', () => {
   ok((last.attrs.class || '').indexOf('pinned-top') !== -1,
     'la darrera capa és la de l’acord');
   const pPanel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano');
-  ok(pPanel.querySelectorAll('.wheel').length === 1,
-    'la secció del piano duu la seva pròpia roda');
+  ok(pPanel.querySelectorAll('.inv-next').length === 1,
+    'la secció del piano duu el seu control d’inversió');
   const pOrder = pPanel.querySelectorAll('.panel-inner')[0].children.map(c => c.attrs.class);
-  ok(pOrder.join('|') === 'stage|wheel-host',
-    'amb la roda sota l’instrument: ' + pOrder.join('|'));
+  ok(pOrder.join('|') === 'stage|wheel-host|sign sign-l|sign sign-r',
+    'amb la roda sota l’instrument i els rètols de camí: ' + pOrder.join('|'));
   const pSlots = pPanel.querySelectorAll('.stage')[0].children.map(c => c.attrs.class);
-  ok(pSlots.join('|') === 'kb-slot|arp-host|kb-slot',
-    'l’slider viu entre els dos pianos: ' + pSlots.join('|'));
+  ok(pSlots.join('|') === 'kb-slot|kb-slot|inv-host',
+    'un teclat per mà i la inversió arran del teclat: ' + pSlots.join('|'));
+  ok(pPanel.querySelectorAll('.sign').length === 2,
+    'amb els dos rètols de camí, eines i explora');
 });
 
 /* ---- un sol instrument: es tria a la configuració ---- */
@@ -209,7 +219,8 @@ guard('un sol instrument, triat a la configuració', () => {
   ok(!app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano'),
     'el piano ja no hi és: res duplicat');
   const gp = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'guitar');
-  ok(!!gp && gp.querySelectorAll('.wheel').length === 1, 'la guitarra hi és, amb la seva roda');
+  ok(!!gp && gp.querySelectorAll('.pos-next').length === 1,
+    'la guitarra hi és, amb la fletxa de posicions');
   ok(storage.get('ac.ins') === 'guitar', 'i es recorda');
   window.Practice.setInstrument('piano');
   ok(!!app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano'),
@@ -241,7 +252,7 @@ guard('canvi de pla', () => {
   ok(!app.classList.contains('on-tool'), 'a l’instrument les capes tornen');
   ok(storage.get('ac.ins') === 'piano', 'i l’instrument es recorda');
   ok(app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano')
-    .querySelectorAll('.wh-item').length > 0, 'la secció del piano duu les inversions');
+    .querySelectorAll('.inv-next').length === 1, 'la secció del piano duu les inversions');
   window.Practice.goTo('guitar');
   ok(state.ins === 'piano', 'anar a un pla que no hi és no fa res');
 });
@@ -350,16 +361,28 @@ guard('manos de piano', () => {
 guard('cifrado con bajo', () => {
   state.rootPc = 0; state.quality = 'maj7'; state.ins = 'piano'; state.posP = 0;
   repaint();
-  const wheelTitles = () => app.querySelectorAll('.panel')
+  const invTitle = () => app.querySelectorAll('.panel')
     .find(p => p.attrs['data-ins'] === 'piano')
-    .querySelectorAll('.wh-item').map(i => i.querySelectorAll('b')[0].textContent);
-  ok(wheelTitles().length === 4, 'Cmaj7 tiene 4 inversiones: ' + wheelTitles().length);
-  ok(wheelTitles().join(' ') === 'Cmaj7 Cmaj7/E Cmaj7/G Cmaj7/B',
-    'las inversiones se cifran con su bajo: ' + wheelTitles().join(' '));
+    .querySelectorAll('.inv-next')[0].querySelectorAll('b')[0].textContent;
+  const cycle = () => app.querySelectorAll('.panel')
+    .find(p => p.attrs['data-ins'] === 'piano')
+    .querySelectorAll('.inv-next')[0].dispatch('click');
+  const seen = [invTitle()];
+  cycle(); seen.push(invTitle());
+  cycle(); seen.push(invTitle());
+  cycle(); seen.push(invTitle());
+  ok(seen.join(' ') === 'Cmaj7 Cmaj7/E Cmaj7/G Cmaj7/B',
+    'las inversiones se cifran con su bajo: ' + seen.join(' '));
+  cycle();
+  ok(invTitle() === 'Cmaj7', 'i el cicle torna a la fonamental');
 
   state.quality = 'maj'; state.posP = 0;
   repaint();
-  ok(wheelTitles().join(' ') === 'C C/E C/G', 'la tríada de C: ' + wheelTitles().join(' '));
+  const seenC = [invTitle()];
+  cycle(); seenC.push(invTitle());
+  cycle(); seenC.push(invTitle());
+  ok(seenC.join(' ') === 'C C/E C/G', 'la tríada de C: ' + seenC.join(' '));
+  state.posP = 0; repaint();
 });
 
 /* ---- el título como mando: dos piezas ---- */
@@ -471,9 +494,18 @@ guard('guitarra', () => {
   const strings = texts(app, 'text').filter(t => t === 'E');
   ok(strings.length >= 2, 'el diagrama rotula las cuerdas');
   const total = Shapes.forChord(5, 'maj').length;
-  const gWheel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'guitar');
-  ok(gWheel.querySelectorAll('.wh-item').length === total,
-    'hay una peça de roda por posición de F (' + total + ')');
+  const gPanel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'guitar');
+  ok(gPanel.querySelectorAll('.wheel').length === 0, 'la guitarra ja no duu roda a sota');
+  const nextBtn = gPanel.querySelectorAll('.pos-next')[0];
+  ok(!!nextBtn && /posicions/.test(nextBtn.textContent),
+    'hi ha la fletxa de més posicions al peu del diapasó');
+  const before = state.posG;
+  nextBtn.dispatch('click');
+  ok(state.posG === (before + 1) % total, 'tocar-la passa a la posició següent');
+  for (let i = 1; i < total; i++) {
+    app.querySelectorAll('.pos-next')[0].dispatch('click');
+  }
+  ok(state.posG === before, 'i al final torna a la primera: és una roda');
   ok(app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'guitar').querySelectorAll('.diagram').length === 1,
     'la guitarra només duu la figura');
   window.Practice.setInstrument('piano');
@@ -746,6 +778,12 @@ guard('el cercle de quintes', () => {
     'fer gran ensenya la roda sencera');
   ok(panel.querySelectorAll('.cf')[0].querySelectorAll('svg')[0].attrs.viewBox === '-4 -4 408 408',
     'amb el cercle complet a la finestra');
+  // tocar fora de la roda la fa petita
+  panel.querySelectorAll('.cf')[0].dispatch('click', { clientX: 4, clientY: 4 });
+  ok((panel.querySelectorAll('.cf')[0].attrs.class || '').indexOf('full') === -1,
+    'tocar fora de la roda la torna a fer petita');
+  zoom.dispatch('click');
+  ok((panel.querySelectorAll('.cf')[0].attrs.class || '').indexOf('full') !== -1, 'es torna a fer gran');
   zoom.dispatch('click');
   ok((panel.querySelectorAll('.cf')[0].attrs.class || '').indexOf('full') === -1,
     'i fer petita torna a la brúixola');
@@ -793,11 +831,9 @@ guard('el cercle de quintes', () => {
   // acceptar la fixa
   app.querySelectorAll('.cf-done')[0].dispatch('click');
   let p3 = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'cercle');
-  ok(p3.querySelectorAll('.cf-done').length === 0 && p3.querySelectorAll('.cf-clear').length === 1,
-    'acceptar fixa la roda');
-  ok(p3.querySelectorAll('.cf-round').length === 1, 'i es pot començar una roda nova');
-  ok(p3.querySelectorAll('.cf-cell').filter(c => c.classList.contains('seq')).length === 3,
-    'les caselles duen el punt de la roda');
+  ok(p3.querySelectorAll('.cf-round').length === 1
+    && p3.querySelectorAll('.cf-done').filter(b => /guarda/.test(b.textContent)).length === 1,
+    'acceptar fixa la roda, amb guarda-la i roda nova');
 
   // girar la roda amb el dit: la roda es reescriu amb la tonalitat nova
   const dial = app.querySelectorAll('.cf')[0].querySelectorAll('svg')[0];
@@ -836,8 +872,7 @@ guard('el cercle de quintes', () => {
     'i el xip duu l’extensió: ' + texts(pv, '.cf-chip')[2]);
 
   // explorar progressions: exemples de la casa amb modulacions
-  state.cIdx = 0; repaint();
-  app.querySelectorAll('.cf-clear')[0].dispatch('click');
+  state.cIdx = 0; state.cSeq = []; repaint();
   const pex = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'cercle');
   const exBtn = pex.querySelectorAll('.cf-round').find(b => /progressions/.test(b.textContent));
   ok(!!exBtn, 'hi ha el botó d’explorar progressions');
@@ -856,59 +891,15 @@ guard('el cercle de quintes', () => {
   ok((pj.querySelectorAll('.cf-chips')[0].attrs.class || '').indexOf('n3') !== -1,
     'tres acords, distribució de tres');
 
-  // la creueta buida la roda i es torna a convidar
-  app.querySelectorAll('.cf-clear')[0].dispatch('click');
+  // "nova roda" buida i torna al mode de crear
+  app.querySelectorAll('.cf-round').find(b => /nova roda/.test(b.textContent)).dispatch('click');
   const p4 = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'cercle');
   ok(p4.querySelectorAll('.cf-chip').length === 0 && state.cSeq.length === 0,
-    'la creueta buida la roda');
-  ok(!!p4.querySelectorAll('.cf-round')[0], 'i es pot crear-ne una de nova');
+    'la roda nova comença buida');
+  ok(!!p4.querySelectorAll('.cf-done')[0], 'i està en mode de crear');
+  app.querySelectorAll('.cf-done')[0].dispatch('click');
 
   state.cIdx = 0; state.rootPc = 0; repaint();
-});
-
-guard('l’slider d’entrar l’acord', () => {
-  state.rootPc = 0; state.quality = 'maj'; state.ins = 'piano'; state.posP = 0;
-  repaint();
-  const panel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano');
-  const track = panel.querySelectorAll('.arp-track')[0];
-  ok(!!track, 'l’slider hi és, sota els teclats');
-  const total = Number(track.attrs['aria-valuemax']);
-  ok(total >= 4, 'una fracció per nota de l’acord: ' + total);
-  ok(track.querySelectorAll('.arp-tick').length === 0, 'sense tics: continu i dissimulat');
-
-  // arrossegar fins a mig camí: sonen les primeres, la resta en fantasma
-  const mid = Math.round(total / 2);
-  track.dispatch('pointerdown', { clientX: 260 * (mid + 0.4) / total, pointerId: 1 });
-  ok(track.attrs['aria-valuenow'] === String(mid), 'a mig camí: ' + track.attrs['aria-valuenow']);
-  const bars = track.querySelectorAll('.arp-bar');
-  ok(bars.length > total, 'més barres que notes, com una ona: ' + bars.length);
-  const lit = bars.filter(b => b.classList.contains('on')).length;
-  ok(lit > 0 && lit < bars.length, 'les barres s’omplen seguint el dit: ' + lit + '/' + bars.length);
-  let hollow = panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none');
-  ok(hollow.length > 0, 'les que falten esperen en fantasma: ' + hollow.length);
-
-  // fins al final: totes dins; deixar anar no apaga res
-  track.dispatch('pointermove', { clientX: 260, pointerId: 1 });
-  track.dispatch('pointerup', { pointerId: 1 });
-  ok(track.attrs['aria-valuenow'] === String(total), 'al final hi són totes');
-  hollow = panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none');
-  ok(hollow.length === 0, 'cap fantasma: l’acord sencer sona i es queda');
-
-  // enrere fins a zero: tot torna al repòs
-  track.dispatch('pointerdown', { clientX: 260, pointerId: 2 });
-  track.dispatch('pointermove', { clientX: 0, pointerId: 2 });
-  track.dispatch('pointerup', { pointerId: 2 });
-  ok(track.attrs['aria-valuenow'] === '0', 'enrere les treu en ordre invers');
-  ok(panel.querySelectorAll('circle').filter(c => c.attrs.fill === 'none').length === 0,
-    'i les marques tornen a ser les de sempre');
-
-  // canviar de pla atura el que sonés
-  track.dispatch('pointerdown', { clientX: 260, pointerId: 3 });
-  track.dispatch('pointerup', { pointerId: 3 });
-  window.Practice.goTo('eines');
-  window.Practice.goTo('piano');
-  ok(panel.querySelectorAll('.arp-track')[0].attrs['aria-valuenow'] === '0',
-    'canviar de pla ho fa callar tot');
 });
 
 guard('les marques fantasma del piano', () => {
@@ -970,93 +961,6 @@ guard('el pianet posa nom al que sona', () => {
   wrap.querySelectorAll('.fp-close')[0].dispatch('click');
 });
 
-guard('la pràctica: una pantalla amb tres jocs', () => {
-  const btn = app.querySelectorAll('.train-btn')[0];
-  ok(!!btn, 'l’anell de pràctica és a dalt a la dreta');
-  btn.dispatch('click');
-  const wrap = document.body.querySelectorAll('.pr-wrap')[0];
-  ok(!!wrap, 's’obre la seva pantalla');
-  ok(wrap.querySelectorAll('.pr-panel').length === 3, 'amb tres jocs per lliscar');
-
-  const intro = wrap.querySelectorAll('.pr-intro')[0];
-  ok(intro.children[0].textContent === 'Construeix l’acord',
-    'el títol del joc surt en entrar: ' + intro.children[0].textContent);
-  ok(intro.classList.contains('hide'), 'i s’esvaeix sol');
-
-  // joc 1: només valen les tecles que sonen
-  const p1 = wrap.querySelectorAll('.pr-panel')[0];
-  const g1 = p1._debug;
-  g1.force(0, 'maj');
-  ok(g1.state().total === 3, 'un C major són tres tecles concretes');
-  g1.tap(48);
-  ok(g1.state().found === 1 && g1.refs(48).rect.attrs.fill === '#DCC9A6',
-    'el do que sona compta i es marca');
-  g1.tap(60);
-  ok(g1.state().found === 1, 'el mateix do una octava amunt NO val');
-  ok(g1.refs(60).rect.attrs.fill === g1.refs(60).baseFill, 'i no es queda marcat');
-  ok(/1 \/ 3/.test(texts(p1, '.tool-hint')[0]), 'el comptador acompanya');
-  g1.tap(52);
-  g1.tap(55);
-  ok(g1.state().lastSolved === 'C', 'endevinat: era un C');
-
-  // inversions: la fonamental ve marcada i el xifrat porta el baix
-  g1.force(0, 'maj', 1);
-  ok(g1.state().midis.join(',') === '52,55,60', 'C/E: mi, sol i el do a dalt');
-  ok(g1.state().found === 1 && g1.refs(60).rect.attrs.fill === '#DCC9A6',
-    'la fonamental ja ve marcada de sèrie');
-  g1.tap(52);
-  g1.tap(55);
-  ok(g1.state().lastSolved === 'C/E', 'i el xifrat diu el baix: ' + g1.state().lastSolved);
-  ok(g1.state().done, 'res no passa sol: la ronda es queda resolta');
-  const arrow = p1.querySelectorAll('.pr-btn').find(b => b.textContent === '→');
-  ok(arrow.classList.contains('on'), 'la fletxa s’encén en acabar');
-  arrow.dispatch('click');
-  ok(!g1.state().done && !arrow.classList.contains('on'),
-    'i és la fletxa qui passa al següent');
-
-  // l’ortografia del baix segueix la tonalitat: Eb/Bb, mai D#/A#
-  g1.force(3, 'maj', 2);
-  g1.tap(58); g1.tap(63); g1.tap(67);
-  ok(g1.state().lastSolved === 'Eb/Bb',
-    'el baix s’escriu com toca: ' + g1.state().lastSolved);
-
-  // el teclat s’ancora a l’acord: un dom9 de Si arriba fins al 73
-  g1.force(11, 'dom9');
-  ok(!!g1.refs(73), 'la finestra es mou perquè totes les notes hi càpiguen');
-  g1.reveal();
-  ok(g1.state ? true : true, 'la resposta no peta');
-
-  // els quatre botons del joc 1, muts: orella, selecció, resposta, següent
-  const row = p1.querySelectorAll('.pr-row')[0];
-  ok(row.children.length === 4
-    && row.querySelectorAll('.pr-ear').length === 1
-    && row.querySelectorAll('.pr-sel').length === 1,
-    'orella que es buida, tres tecletes, ? i fletxa');
-
-  // joc 2: la nota misteriosa des de la referència
-  const g2 = wrap.querySelectorAll('.pr-panel')[1]._debug;
-  g2.force(48, 4);
-  ok(g2.state().target === 52, 'referència 48 + 3a major = 52');
-  g2.tap(50);
-  ok(!g2.state().done, 'fallar no resol');
-  g2.tap(48);
-  ok(!g2.state().done, 'tocar la referència no penalitza');
-  g2.tap(52);
-  ok(g2.state().lastSolved === '3a major', 'trobada: era una 3a major');
-
-  // joc 3: pinta el grau (canta’l abans)
-  const p3 = wrap.querySelectorAll('.pr-panel')[2];
-  const g3 = p3._debug;
-  g3.force(50, 3);
-  ok(texts(p3, '.pr-name')[0] === '3a menor', 'el grau es demana pel nom');
-  ok(/cantar/.test(texts(p3, '.tool-hint')[0]), 'i primer, prova de cantar-la');
-  g3.tap(53);
-  ok(g3.state().lastSolved === '3a menor', 'pintada al seu lloc');
-
-  wrap.querySelectorAll('.pr-close')[0].dispatch('click');
-  ok(document.body.querySelectorAll('.pr-wrap').length === 0, 'la creu tanca la pràctica');
-});
-
 guard('el rètol d’estrena: fins al primer canvi', () => {
   window.localStorage.removeItem('ac.coached');
   window.Practice.goTo('guitar');
@@ -1071,12 +975,6 @@ guard('el rètol d’estrena: fins al primer canvi', () => {
   ok(texts(app, '.coach').length === 0, 'i la pista no torna mai més');
 });
 
-guard('el salt al Quinacord', () => {
-  const a = app.querySelectorAll('.quina-btn')[0];
-  ok(!!a && a.tagName === 'button' && /dia/.test(a.textContent),
-    'el lockup en miniatura obre el joc diari');
-  ok(a.querySelectorAll('.qm-dot').length === 1, 'amb el seu punt beix, sense triangle');
-});
 
 guard('les tecles marcades semblen polsades', () => {
   const kb = app.querySelectorAll('.kb')[0];
@@ -1087,32 +985,24 @@ guard('les tecles marcades semblen polsades', () => {
     'les marcades baixen un pèl i la resta no: ' + sunk.length + '/' + keys.length);
 });
 
-guard('la roda: el nom de dalt no parpelleja i aquí baix no hi ha blur', () => {
-  const activePanel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === state.ins);
-  const items = activePanel.querySelectorAll('.wh-item');
-  ok(items.length > 1, 'hi ha més d’una inversió per provar: ' + items.length);
-  ok(items[0].classList.contains('on') && !items[1].classList.contains('on'),
-    'la del mig es llegeix neta i les altres no');
-  ok(items[1].style.filter === undefined, 'cap blur a la roda');
-  ok(/rotate/.test(items[1].style.transform) && Number(items[1].style.opacity) < 1,
-    'els veïns s’inclinen com una brúixola i s’apaguen: ' + items[1].style.transform);
-  // la roda compta amb el coixí interior: la peça 0 no és el límit físic
-  const strip = activePanel.querySelectorAll('.wheel')[0];
-  ok(strip.scrollLeft === 46, 'la peça triada seu 46px endins del límit: ' + strip.scrollLeft);
-
-  items[1].dispatch('click');
-  ok(activePanel.querySelectorAll('.wh-item')[1].getAttribute('aria-selected') === 'true',
-    'tocar-ne una la porta al centre');
-  const wheelKids = activePanel.querySelectorAll('.wheel')[0].children;
-  ok(!wheelKids.some(k => k.classList.contains('fx-in') || k.classList.contains('fx-out')),
-    'la roda no fa l’animació de blur');
+guard('la inversió en línia: el nom de dalt no parpelleja', () => {
+  state.rootPc = 0; state.quality = 'maj'; state.posP = 0;
+  repaint();
+  const activePanel = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano');
+  const ctrl = activePanel.querySelectorAll('.inv-next')[0];
+  ok(!!ctrl, 'el control d’inversió hi és');
+  ok(ctrl.querySelectorAll('b')[0].textContent === 'C', 'i diu el xifrat: C');
+  ctrl.dispatch('click');
   const topKids = app.querySelectorAll('.pinned-inner')[0].children;
   const blurredTop = topKids.filter(k =>
     k.classList.contains('fx-in') || k.classList.contains('fx-out')).length;
   ok(topKids.length > 0 && blurredTop === 0,
     'el nom de l’acord queda quiet: ' + blurredTop + ' fills amb fx');
-  ok(activePanel.querySelectorAll('.fx-in').length > 0,
-    'els diagrames sí que fan la transició');
+  const p2 = app.querySelectorAll('.panel').find(p => p.attrs['data-ins'] === 'piano');
+  ok(p2.querySelectorAll('.inv-next')[0].querySelectorAll('b')[0].textContent === 'C/E',
+    'i la inversió avança: ' + p2.querySelectorAll('.inv-next')[0].querySelectorAll('b')[0].textContent);
+  ok(p2.querySelectorAll('.fx-in').length > 0, 'els diagrames sí que fan la transició');
+  state.posP = 0; repaint();
 });
 
 guard('mastil ajagut', () => {

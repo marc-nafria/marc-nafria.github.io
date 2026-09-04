@@ -2,7 +2,7 @@
 <html lang="ca" style="background:#060605">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#060605">
 <meta name="color-scheme" content="dark">
 <meta name="description" content="Formes d'acords per a guitarra i piano, amb digitació de les dues mans. Pensat per practicar al mòbil.">
@@ -18,27 +18,27 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800;900&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700;800&display=swap">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="css/practice.css?v=88">
-<link rel="stylesheet" href="css/quina.css?v=88">
+<link rel="stylesheet" href="css/practice.css?v=98">
+<link rel="stylesheet" href="css/quina.css?v=98">
 </head>
 <body>
 
 <div id="app"></div>
 
-<script src="js/theory.js?v=88"></script>
-<script src="js/audio.js?v=88"></script>
-<script src="js/piano.js?v=88"></script>
-<script src="js/fretboard.js?v=88"></script>
-<script src="js/shapes.js?v=88"></script>
-<script src="js/config.js?v=88"></script>
-<script src="js/tools.js?v=88"></script>
-<script src="js/cercle.js?v=88"></script>
-<script src="js/practice.js?v=88"></script>
-<script src="js/quina.js?v=88"></script>
+<script src="js/theory.js?v=98"></script>
+<script src="js/audio.js?v=98"></script>
+<script src="js/piano.js?v=98"></script>
+<script src="js/fretboard.js?v=98"></script>
+<script src="js/shapes.js?v=98"></script>
+<script src="js/config.js?v=98"></script>
+<script src="js/tools.js?v=98"></script>
+<script src="js/cercle.js?v=98"></script>
+<script src="js/practice.js?v=98"></script>
+<script src="js/quina.js?v=98"></script>
 <script>
-Config.load('data/chords.json?v=88').then(function () {
+Config.load('data/chords.json?v=98').then(function () {
   Practice.start();
-  /* els enllaços vells del joc (i el compartir) porten aquí */
+  /* els enllaços del joc porten aquí */
   if (location.hash === '#quina') { Quina.open(); }
 }).catch(function (err) {
   var msg = String(err && err.message ? err.message : err);

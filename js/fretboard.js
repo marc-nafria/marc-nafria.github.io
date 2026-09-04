@@ -396,8 +396,8 @@
     if (o.strings !== false) {
       ['E', 'A', 'D', 'G', 'B', 'E'].forEach(function (name, idx) {
         svg.appendChild(txt({
-          x: colX(idx), y: T + ROWS * C + 11 * k, 'text-anchor': 'middle',
-          fill: '#6A645C', 'font-size': 8.6 * k, 'font-weight': 700,
+          x: colX(idx), y: T + ROWS * C + 10 * k, 'text-anchor': 'middle',
+          fill: '#4E4942', 'font-size': 6.2 * k, 'font-weight': 700,
           'font-family': 'JetBrains Mono, ui-monospace, monospace'
         }, name));
       });

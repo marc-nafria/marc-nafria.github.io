@@ -7,7 +7,7 @@
    les caus velles. Sense el bump, els visitants es queden amb la
    versió vella per sempre.
    ============================================================ */
-var V = '88';
+var V = '98';
 var CORE = 'acords-v' + V;
 var FONTS = 'acords-fonts';
 
@@ -28,9 +28,9 @@ var ASSETS = [
   'js/practice.js',
   'js/quina.js',
   'css/quina.css',
+  'quinacord/index.html',
   'data/chords.json',
   'icon.svg',
-  'quinacord/index.html',
   'icon-512.png',
   'apple-touch-icon.png',
   'manifest.webmanifest'

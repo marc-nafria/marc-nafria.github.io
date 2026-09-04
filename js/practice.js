@@ -31,8 +31,6 @@
   /* plans on l'acord de dalt segueix visible (al cercle no: allà dalt
      hi va COM ES TOCA l'acord, no el seu nom) */
   var TOPPED = { guitar: true, piano: true };
-  /* plans amb roda a sota (el cercle es gira a si mateix) */
-  var WHEELED = ['guitar', 'piano'];
 
   var RH_BASE = 60;   // la derecha toca alrededor de C4
   var LH_BASE = 45;   // la izquierda, una décima por debajo
@@ -406,14 +404,6 @@
   var arp = null;     /* { notes, level, voices, played } mentre en sona alguna */
   var arpUI = null;   /* { track, bar, thumb } de l'slider viu */
 
-  function arpNotes() {
-    var total = voicings(RH_BASE).length;
-    var rh = rhVoicing(Math.min(state.posP, total - 1));
-    var lh = lhVoicing(rh[0]);
-    var all = lh.concat(rh).sort(function (a, b) { return a - b; });
-    return all.filter(function (m, i) { return i === 0 || m !== all[i - 1]; });
-  }
-
   function paintPiano(fx) {
     var total = voicings(RH_BASE).length;
     if (state.posP >= total) { state.posP = 0; }
@@ -424,30 +414,7 @@
     fill(shell.panels.piano.kbR, [keyboard(rh, 'R')], fx);
   }
 
-  var ARP_BARS = 26;   /* més barres que notes: una ona, no un compte */
-
-  /* alçades pseudoaleatòries però deterministes per acord: canvien
-     quan canvia l'acord, no a cada repintat */
-  function arpWave(seed) {
-    var hs = [];
-    var t = (seed * 2654435761) >>> 0;
-    for (var i = 0; i < ARP_BARS; i++) {
-      t = (t * 1103515245 + 12345) >>> 0;
-      var r = (t >>> 16) / 65536;
-      var wave = .5 + .5 * Math.sin(i * .82 + seed % 7);
-      hs.push(Math.round(16 + 44 * wave * (.45 + .55 * r) + 12 * r));
-    }
-    return hs;
-  }
-
-  function arpPaintUI(frac, level) {
-    if (!arpUI) { return; }
-    var on = Math.round(frac * arpUI.bars.length);
-    arpUI.bars.forEach(function (b, i) {
-      if (i < on) { b.classList.add('on'); } else { b.classList.remove('on'); }
-    });
-    arpUI.track.setAttribute('aria-valuenow', level);
-  }
+  function arpPaintUI() { /* l'slider ja no existeix: res a pintar */ }
 
   function stopArp(skipPaint) {
     if (!arp) { return; }
@@ -457,80 +424,7 @@
     if (!skipPaint) { paintPiano(); }
   }
 
-  /* el nivell k = quantes notes sonen; pujar n'enceta, baixar n'apaga */
-  function arpSetLevel(k) {
-    if (!arp) {
-      if (k <= 0) { return; }
-      Sound.ready();
-      arp = { notes: arpNotes(), level: 0, voices: {}, played: {} };
-    }
-    k = Math.max(0, Math.min(arp.notes.length, k));
-    if (k === arp.level) { return; }
-    while (arp.level < k) {
-      var m = arp.notes[arp.level];
-      arp.voices[m] = Sound.padOn(m);
-      arp.played[m] = true;
-      arp.level += 1;
-    }
-    while (arp.level > k) {
-      arp.level -= 1;
-      var m2 = arp.notes[arp.level];
-      if (arp.voices[m2]) { arp.voices[m2].release(); delete arp.voices[m2]; }
-      delete arp.played[m2];
-    }
-    if (arp.level === 0) { arp = null; }
-    paintPiano();
-  }
 
-  function arpSlider() {
-    var notes = arpNotes();
-    var total = notes.length;
-    var seed = notes.reduce(function (a, m) { return a + m; }, 17) + total * 31;
-    var bars = arpWave(seed).map(function (hh) {
-      return h('i', { class: 'arp-bar', style: 'height:' + hh + '%' });
-    });
-    var track = h('div', {
-      class: 'arp-track', role: 'slider', tabindex: '0',
-      'aria-label': 'Entrar l\u2019acord nota a nota',
-      'aria-valuemin': '0', 'aria-valuemax': String(total), 'aria-valuenow': '0'
-    }, bars);
-
-    /* continu: la barra segueix el dit tal qual, i cada nota entra en
-       creuar la seva fraccio del recorregut */
-    function moveTo(ev) {
-      if (!track.getBoundingClientRect) { return; }
-      var r = track.getBoundingClientRect();
-      if (!r.width) { return; }
-      var frac = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
-      var level = Math.floor(frac * total + 0.0001);
-      arpPaintUI(frac, level);
-      arpSetLevel(level);
-    }
-
-    track.addEventListener('pointerdown', function (ev) {
-      if (ev.preventDefault) { ev.preventDefault(); }
-      moveTo(ev);
-      function move(e) {
-        moveTo(e);
-      }
-      function up() {
-        track.removeEventListener('pointermove', move);
-        track.removeEventListener('pointerup', up);
-        track.removeEventListener('pointercancel', up);
-      }
-      track.addEventListener('pointermove', move);
-      track.addEventListener('pointerup', up);
-      track.addEventListener('pointercancel', up);
-      try {
-        if (track.setPointerCapture && ev.pointerId !== undefined) {
-          track.setPointerCapture(ev.pointerId);
-        }
-      } catch (e) { /* la captura es un extra */ }
-    });
-
-    arpUI = { track: track, bars: bars };
-    return h('div', { class: 'arp' }, [track]);
-  }
 
   /* ---------------- contenido: guitarra ---------------- */
   function guitarContent() {
@@ -554,7 +448,29 @@
          al carrusel (al mobil, preventDefault el deixava clavat) */
       horizontal: isLandscape()      /* en apaisat, el mastil s'ajeu */
     });
-    return [h('div', { class: 'diagram narrow' }, [box])];
+    var out = [h('div', { class: 'diagram narrow' }, [box])];
+
+    /* mes posicions: la fletxa al final del diapaso, pero EN FLUX
+       (ocupa el seu lloc sota el mastil: mai no es toca amb els
+       cartells de baix). Les posicions van de mes avall a mes amunt. */
+    if (list.length > 1) {
+      out.push(h('div', { class: 'pos-row' }, [h('button', {
+        class: 'pos-next', type: 'button',
+        'aria-label': 'Més posicions',
+        onclick: function () {
+          change(function () {
+            state.posG = (state.posG + 1) % list.length;
+          }, { keepTitle: true });
+        }
+      }, [
+        h('span', { text: 'més posicions' }),
+        h('span', {
+          class: 'pos-arrow',
+          html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5 Q16.5 12 8 19.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+        })
+      ])]));
+    }
+    return out;
   }
 
   /* ---------------- capa fija de abajo ---------------- */
@@ -563,119 +479,27 @@
     return midis.length ? Theory.mod12(midis[0]) : state.rootPc;
   }
 
-  function pagerData(ins) {
-    if ((ins || state.ins) === 'piano') {
-      var v = voicings(RH_BASE);
-      return {
-        index: Math.min(state.posP, v.length - 1),
-        items: v.map(function (notes, i) {
-          return { title: slashSymbol(notes[0]), sub: INV_NAMES[i] || 'inversió' };
-        }),
-        onChange: function (n) {
-          change(function () { state.posP = n; }, { keepTitle: true, keepWheel: true });
-        }
-      };
-    }
-    var list = shapes();
-    if (!list.length) {
-      return {
-        index: 0, items: [{ title: symbol(), sub: 'sense posicions' }],
-        onChange: function () {}
-      };
-    }
-    return {
-      index: Math.min(state.posG, list.length - 1),
-      items: list.map(function (shape) {
-        return {
-          title: slashSymbol(bassOfShape(shape)),
-          sub: (shape.label || 'posició') + (shape.base > 1 ? ' · trast ' + shape.base : '')
-        };
-      }),
-      onChange: function (n) {
-        change(function () { state.posG = n; }, { keepTitle: true, keepWheel: true });
+  /* la inversio, en linia sota els teclats: el xifrat amb el baix,
+     el seu nom, i una fletxa per passar a la seguent (com el "mes
+     posicions" de la guitarra: un sol patro per a tota la casa) */
+  function invControl() {
+    var v = voicings(RH_BASE);
+    var i = Math.min(state.posP, v.length - 1);
+    if (v.length < 2) { return null; }
+    return h('button', {
+      class: 'inv-next', type: 'button',
+      'aria-label': 'Canviar la inversió, ara ' + (INV_NAMES[i] || 'inversió'),
+      onclick: function () {
+        change(function () { state.posP = (i + 1) % v.length; }, { keepTitle: true });
       }
-    };
-  }
-
-  /* ----------------------------------------------------------------
-     La roda: totes les inversions (o posicions) en una tira que es
-     llisca. La del mig es llegeix neta; les del costat es fan petites,
-     es desdibuixen i s'aparten, com una roda que gira. Cap fletxa.
-     ---------------------------------------------------------------- */
-  var WH_W = 118;          /* ample d'una peca; el mateix que al CSS */
-  var WH_P = 46;           /* coixi interior: el limit fisic mai no es una peca */
-  var WH_R = 560;          /* el radi del dial, ben gran */
-  /* l'angle per pas: el que fa que la corda de l'arc valgui un pas */
-  var WH_THETA = Math.asin(WH_W / WH_R) * 180 / Math.PI;
-  var wheels = {};         /* una roda per instrument, dins de la seva seccio */
-  var wheelTimer = null;
-
-  function wheelPaint(el) {
-    var wheelEl = el;
-    if (!wheelEl) { return; }
-    var kids = wheelEl.children;
-    var at = ((wheelEl.scrollLeft || 0) - WH_P) / WH_W;
-    for (var i = 0; i < kids.length; i++) {
-      var d = Math.abs(i - at);
-      var off = i - at;
-      /* dial de debo: totes les peces al mateix punt (es desfa el pas
-         de la fila) i despres giren al voltant d'un centre profund; el
-         radi els dona el desplaçament, la inclinacio i la caiguda */
-      kids[i].style.transform = 'translateX(' + (-off * WH_W).toFixed(1) + 'px)'
-        + ' rotate(' + (off * WH_THETA).toFixed(2) + 'deg)';
-      kids[i].style.opacity = (1 - 0.62 * Math.min(d, 1)).toFixed(3);
-      kids[i].classList.toggle('on', d < 0.5);
-    }
-  }
-
-  function wheelSettle(el, onChange, current) {
-    var at = Math.round(((el.scrollLeft || 0) - WH_P) / WH_W);
-    var n = Math.max(0, Math.min(el.children.length - 1, at));
-    if (n !== current) { onChange(n); }
-  }
-
-  function wheel(ins) {
-    var d = pagerData(ins);
-    var strip = h('div', {
-      class: 'wheel', role: 'listbox', 'aria-label': 'Inversions i posicions'
-    });
-
-    d.items.forEach(function (it, i) {
-      strip.appendChild(h('button', {
-        class: 'wh-item', type: 'button', role: 'option',
-        'aria-selected': i === d.index ? 'true' : 'false',
-        onclick: function () {
-          /* tocar-ne una del costat la porta al centre */
-          if (i === d.index) { return; }
-          if (strip.scrollTo) { strip.scrollTo({ left: WH_P + i * WH_W, behavior: 'smooth' }); }
-          else { strip.scrollLeft = WH_P + i * WH_W; }
-          wheelPaint(strip);
-          d.onChange(i);
-        }
-      }, [h('b', { text: it.title }), h('span', { text: it.sub })]));
-    });
-
-    /* un repintat per frame com a molt: el scroll dispara mes
-       esdeveniments que frames i pintar-los tots es malbaratar-los */
-    var rafPending = false;
-    strip.addEventListener('scroll', function () {
-      if (!rafPending) {
-        rafPending = true;
-        (global.requestAnimationFrame || global.setTimeout)(function () {
-          rafPending = false;
-          wheelPaint(strip);
-        });
-      }
-      if (wheelTimer && global.clearTimeout) { global.clearTimeout(wheelTimer); }
-      wheelTimer = global.setTimeout(function () {
-        wheelSettle(strip, d.onChange, d.index);
-      }, 110);
-    });
-
-    wheels[ins] = strip;
-    strip.scrollLeft = WH_P + d.index * WH_W;
-    wheelPaint(strip);
-    return strip;
+    }, [
+      h('b', { text: slashSymbol(v[i][0]) }),
+      h('span', { text: INV_NAMES[i] || 'inversió' }),
+      h('span', {
+        class: 'pos-arrow',
+        html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5 Q16.5 12 8 19.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
+      })
+    ]);
   }
 
   /* ---------------- título: el mando ---------------- */
@@ -723,19 +547,13 @@
     /* el lockup del joc, en miniatura: la seva propia marca fa de boto */
     var quinaBtn = h('button', {
       class: 'quina-btn', type: 'button',
-      'aria-label': 'L\u2019acord del dia: el joc',
+      'aria-label': 'L’acord del dia: el joc',
       onclick: function () { if (global.Quina && global.Quina.open) { global.Quina.open(); } }
     }, [h('span', { class: 'qm' }, [
-      h('i', { class: 'qm1', text: 'L\u2019acord' }),
+      h('i', { class: 'qm1', text: 'L’acord' }),
       h('i', { class: 'qm2', text: 'del' }),
       h('i', { class: 'qm3', text: 'dia' }, [h('u', { class: 'qm-dot' })])
     ])]);
-
-    var trainBtn = h('button', {
-      class: 'train-btn', type: 'button',
-      'aria-label': 'Pr\u00e0ctica d\u2019o\u00efda',
-      onclick: function () { if (global.Tools) { global.Tools.openPractice(); } }
-    }, [h('i')]);
 
     var lookBtn = h('button', {
       class: 'look-btn', type: 'button',
@@ -746,7 +564,6 @@
 
     return [
       quinaBtn,
-      trainBtn,
       lookBtn,
       pianoBtn,
       h('h1', { class: 'chord-name' }, [rootTok, extTok]),
@@ -1039,15 +856,27 @@
         deck.appendChild(h('div', { class: 'panel', 'data-ins': p }, [inner]));
         panels[p] = { inner: stage, wheelHost: wheelHost };
         if (p === 'piano') {
-          /* nius fixos: teclat esquerre, slider entremig, teclat dret.
-             Aixi cada nota repinta els teclats sense matar l'slider
-             que tens sota el dit. */
+          /* nius fixos: un teclat per ma, i la inversio ARRAN del
+             teclat (si anes a baix, es confondria amb els cartells) */
           panels.piano.kbL = h('div', { class: 'kb-slot' });
-          panels.piano.arpHost = h('div', { class: 'arp-host' });
           panels.piano.kbR = h('div', { class: 'kb-slot' });
+          panels.piano.invHost = h('div', { class: 'inv-host' });
           stage.appendChild(panels.piano.kbL);
-          stage.appendChild(panels.piano.arpHost);
           stage.appendChild(panels.piano.kbR);
+          stage.appendChild(panels.piano.invHost);
+        }
+        if (INSTRUMENTS[p]) {
+          /* 15) els retols de cami: eines a l'esquerra, explora a la dreta */
+          inner.appendChild(h('button', {
+            class: 'sign sign-l', type: 'button',
+            'aria-label': 'Afinador i tempo',
+            onclick: function () { goTo('eines'); }
+          }, [h('span', { class: 'sign-ico', text: '\uD83C\uDF9B \u23F1' }), h('b', { text: 'eines' })]));
+          inner.appendChild(h('button', {
+            class: 'sign sign-r', type: 'button',
+            'aria-label': 'El cercle de quintes',
+            onclick: function () { goTo('cercle'); }
+          }, [h('b', { text: 'explora!' })]));
         }
       } else {
         deck.appendChild(h('div', { class: 'panel panel-tool', 'data-ins': p },
@@ -1142,6 +971,208 @@
     document.body.appendChild(sheetEl);
   }
 
+  /* ----------------------------------------------------------------
+     La postal de la roda: una imatge 1080x1350 amb els acords, els
+     graus i com es toquen (l'instrument triat), per guardar o
+     compartir. Tot dibuixat a ma sobre canvas, amb les tres veus.
+     ---------------------------------------------------------------- */
+  function postalChord(item) {
+    var i = ((state.cIdx + item.d) % 12 + 12) % 12;
+    var info = Cercle.infoFor(i, item.ring, state.cIdx);
+    var q = item.q && Theory.CHORDS[item.q] ? item.q : info.quality;
+    return {
+      pc: info.pc,
+      q: q,
+      name: Theory.pcName(info.pc, { flats: useFlats(info.pc) }) + Theory.CHORDS[q].suffix,
+      deg: info.deg
+    };
+  }
+
+  function postalKeys(ctx, x, y, w, hh, pc, q) {
+    /* un teclat de 10 blanques amb l'acord marcat, des de la blanca
+       de sota de la fonamental */
+    var WHITE = [0, 2, 4, 5, 7, 9, 11];
+    var from = pc;
+    while (WHITE.indexOf(((from % 12) + 12) % 12) === -1) { from -= 1; }
+    from -= 2;
+    while (WHITE.indexOf(((from % 12) + 12) % 12) === -1) { from -= 1; }
+    var pcs = Theory.buildChord(pc, q).map(function (n) { return n.pc; });
+    var kw = w / 10;
+    var whites = [];
+    var m = from;
+    while (whites.length < 10) {
+      if (WHITE.indexOf(((m % 12) + 12) % 12) !== -1) { whites.push(m); }
+      m += 1;
+    }
+    var seen = {};
+    whites.forEach(function (mid, k) {
+      var kx = x + k * kw;
+      var on = pcs.indexOf(((mid % 12) + 12) % 12) !== -1 && !seen[mid % 12];
+      if (on) { seen[mid % 12] = true; }
+      ctx.fillStyle = on ? '#DCC9A6' : '#C7C0B2';
+      ctx.fillRect(kx + 1, y, kw - 2, hh);
+    });
+    /* negres per sobre */
+    whites.slice(0, 9).forEach(function (mid, k) {
+      var next = mid + 1;
+      if (WHITE.indexOf(((next % 12) + 12) % 12) === -1) {
+        var on = pcs.indexOf(((next % 12) + 12) % 12) !== -1 && !seen[next % 12];
+        if (on) { seen[next % 12] = true; }
+        ctx.fillStyle = on ? '#B08B3C' : '#161513';
+        ctx.fillRect(x + (k + 1) * kw - kw * 0.32, y, kw * 0.64, hh * 0.62);
+      }
+    });
+  }
+
+  function postalFrets(ctx, x, y, w, hh, pc, q) {
+    var list = Shapes.forChord(pc, q);
+    if (!list.length) { postalKeys(ctx, x, y + hh * 0.2, w, hh * 0.6, pc, q); return; }
+    var sh = list[0];
+    var L = x + w * 0.12, R = x + w * 0.88;
+    var sw = (R - L) / 5;
+    var fh = hh / 4.6;
+    ctx.strokeStyle = '#6A645C';
+    ctx.lineWidth = 2;
+    for (var c = 0; c < 6; c++) {
+      ctx.beginPath();
+      ctx.moveTo(L + c * sw, y + fh * 0.5);
+      ctx.lineTo(L + c * sw, y + fh * 4.5);
+      ctx.stroke();
+    }
+    for (var f = 0; f < 5; f++) {
+      ctx.lineWidth = (f === 0 && sh.base === 1) ? 6 : 2;
+      ctx.strokeStyle = (f === 0 && sh.base === 1) ? '#F2EFE9' : '#6A645C';
+      ctx.beginPath();
+      ctx.moveTo(L, y + fh * (0.5 + f));
+      ctx.lineTo(R, y + fh * (0.5 + f));
+      ctx.stroke();
+    }
+    sh.frets.forEach(function (fr, c) {
+      var cx2 = L + c * sw;
+      if (fr > 0) {
+        var rel = fr - (sh.base > 1 ? sh.base - 1 : 0);
+        ctx.fillStyle = '#DCC9A6';
+        ctx.beginPath();
+        ctx.arc(cx2, y + fh * (rel), fh * 0.34, 0, 7);
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = fr === 0 ? '#DCC9A6' : '#6A645C';
+        ctx.lineWidth = 2.4;
+        if (fr === 0) {
+          ctx.beginPath();
+          ctx.arc(cx2, y + fh * 0.1, fh * 0.2, 0, 7);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(cx2 - fh * 0.18, y - fh * 0.08);
+          ctx.lineTo(cx2 + fh * 0.18, y + fh * 0.28);
+          ctx.moveTo(cx2 + fh * 0.18, y - fh * 0.08);
+          ctx.lineTo(cx2 - fh * 0.18, y + fh * 0.28);
+          ctx.stroke();
+        }
+      }
+    });
+  }
+
+  function savePostal() {
+    if (!state.cSeq.length || !global.document.createElement) { return; }
+    var chords = state.cSeq.slice(0, 8).map(postalChord);
+    var W = 1080, H = 1350;
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var ctx = cv.getContext('2d');
+    if (!ctx) { return; }
+
+    var paint = function () {
+      /* el fons de la casa: negre calid, llum alta, vinyeta */
+      ctx.fillStyle = '#060605';
+      ctx.fillRect(0, 0, W, H);
+      var g1 = ctx.createRadialGradient(W / 2, H * 0.3, 80, W / 2, H * 0.3, W * 0.9);
+      g1.addColorStop(0, 'rgba(255,255,255,.07)');
+      g1.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g1;
+      ctx.fillRect(0, 0, W, H);
+      var g2 = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
+      g2.addColorStop(0, 'rgba(0,0,0,0)');
+      g2.addColorStop(1, 'rgba(0,0,0,.55)');
+      ctx.fillStyle = g2;
+      ctx.fillRect(0, 0, W, H);
+
+      /* dalt: la tonalitat, en la veu de la musica */
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#948D83';
+      ctx.font = '800 26px Outfit, sans-serif';
+      ctx.fillText('L A   R O D A   E N', W / 2, 96);
+      ctx.fillStyle = '#F4F1EB';
+      ctx.font = '900 130px Fraunces, Georgia, serif';
+      ctx.fillText(Cercle.KEYS[state.cIdx].maj, W / 2, 220);
+      ctx.fillStyle = '#DCC9A6';
+      ctx.font = 'italic 400 40px "Instrument Serif", Georgia, serif';
+      ctx.fillText('major', W / 2, 272);
+
+      /* la graella: nom + grau + com es toca */
+      var n = chords.length;
+      var cols = n <= 2 ? n : (n <= 4 ? 2 : (n <= 6 ? 3 : 4));
+      var rows = Math.ceil(n / cols);
+      var top = 340;
+      var cw = (W - 120) / cols;
+      var ch = Math.min(300, (H - top - 120) / rows);
+      chords.forEach(function (c, k) {
+        var col = k % cols, row = Math.floor(k / cols);
+        var cx2 = 60 + col * cw + cw / 2;
+        var cy2 = top + row * ch;
+        ctx.fillStyle = '#F4F1EB';
+        ctx.font = '900 ' + (n <= 4 ? 64 : 48) + 'px Outfit, sans-serif';
+        ctx.fillText(c.name, cx2, cy2 + 56);
+        if (c.deg) {
+          var minor = /^[a-z]/.test(c.deg.num);
+          ctx.fillStyle = '#DCC9A6';
+          ctx.font = minor
+            ? 'italic 400 30px "Instrument Serif", Georgia, serif'
+            : '700 28px Fraunces, Georgia, serif';
+          ctx.fillText(c.deg.num, cx2, cy2 + 96);
+        }
+        var dw = Math.min(cw - 44, 230);
+        if (state.ins === 'guitar') {
+          postalFrets(ctx, cx2 - dw / 2, cy2 + 116, dw, ch - 150, c.pc, c.q);
+        } else {
+          postalKeys(ctx, cx2 - dw / 2, cy2 + 122, dw, Math.min(ch - 170, 96), c.pc, c.q);
+        }
+      });
+
+      /* el peu, discret */
+      ctx.fillStyle = '#66605A';
+      ctx.font = '800 22px Outfit, sans-serif';
+      ctx.fillText('A C O R D S   ·   E L   C E R C L E   D E   Q U I N T E S', W / 2, H - 56);
+
+      cv.toBlob(function (blob) {
+        if (!blob) { return; }
+        var file;
+        try { file = new File([blob], 'roda.png', { type: 'image/png' }); } catch (e) { file = null; }
+        if (file && global.navigator && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file] }).catch(function () { /* ha plegat */ });
+          return;
+        }
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'roda.png';
+        document.body.appendChild(a);
+        a.click();
+        global.setTimeout(function () {
+          URL.revokeObjectURL(a.href);
+          if (a.parentNode) { a.parentNode.removeChild(a); }
+        }, 400);
+      }, 'image/png');
+    };
+
+    /* que les lletres de debo hi siguin abans de pintar */
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(paint);
+    } else {
+      paint();
+    }
+  }
+
   function cercleContent() {
     if (!cercleInst) {
       cercleInst = Cercle.create({
@@ -1184,6 +1215,9 @@
         },
         onExplore: function () {
           openProgSheet();
+        },
+        onSave: function () {
+          savePostal();
         },
         onRound: function () {
           cRec = true;
@@ -1243,7 +1277,7 @@
 
       /* el grau amb la seva inscripci\u00f3, i la funci\u00f3 en la veu que
          xiuxiueja (vegeu ESTIL.md) */
-      var degEl;
+      var degEl = null;
       if (deg) {
         var minor = /^[a-z]/.test(deg.num);
         degEl = h('span', { class: 'cfp-deg' }, [
@@ -1253,14 +1287,10 @@
           }),
           h('i', { class: 'cfp-fn', text: deg.fn })
         ]);
-      } else {
-        degEl = h('span', { class: 'cfp-deg' }, [
-          h('i', { class: 'cfp-fn', text: 'fora de la tonalitat' })
-        ]);
       }
 
       var kids = [
-        h('div', { class: 'cfp-head' }, [big, degEl]),
+        h('div', { class: 'cfp-head' }, degEl ? [big, degEl] : [big]),
         body
       ];
 
@@ -1322,30 +1352,34 @@
   function render(fx, o) {
     var keep = o || {};
     if (shell.panels.guitar) { fill(shell.panels.guitar.inner, guitarContent(), fx); }
-    if (shell.panels.piano) {
-      paintPiano(fx);
-      fill(shell.panels.piano.arpHost, [arpSlider()]);
-    }
+    if (shell.panels.piano) { paintPiano(fx); }
     fill(shell.panels.cercle.inner, [cercleContent()], fx);
     fill(shell.topInner, titleContent(), fx && !keep.keepTitle);
 
-    WHEELED.filter(function (ins) { return shell.panels[ins]; }).forEach(function (ins) {
-      var host = shell.panels[ins].wheelHost;
-      if (keep.keepWheel && wheels[ins]) {
-        /* mateixa roda: nomes canvia quina peca esta triada */
-        var kids = wheels[ins].children;
-        var at = pagerData(ins).index;
-        for (var i = 0; i < kids.length; i++) {
-          kids[i].setAttribute('aria-selected', i === at ? 'true' : 'false');
-        }
-      } else {
-        fill(host, [wheel(ins)]);
-      }
-    });
+    if (shell.panels.piano) {
+      fill(shell.panels.piano.invHost, [invControl()]);
+    }
   }
 
   function start() {
     restore();
+
+    /* Al navegador del mobil (sense web app) la barra d'adreces creix
+       i encongeix el viewport: l'alcada de l'app es fixa en pixels
+       reals a cada canvi, i res no es trenca. */
+    var appEl = document.getElementById('app');
+    function fitApp() {
+      var vh = (global.visualViewport && global.visualViewport.height) || global.innerHeight;
+      if (vh && appEl) { appEl.style.height = Math.round(vh) + 'px'; }
+    }
+    fitApp();
+    global.addEventListener('resize', fitApp);
+    if (global.visualViewport && global.visualViewport.addEventListener) {
+      global.visualViewport.addEventListener('resize', fitApp);
+    }
+    global.addEventListener('orientationchange', function () {
+      global.setTimeout(fitApp, 250);
+    });
     activeId = state.ins;
     shell = buildShell(document.getElementById('app'));
     render(false);

@@ -140,31 +140,9 @@ button {
   flex: 1 1 auto; min-height: 0;
   display: flex; flex-direction: column; justify-content: center; gap: 12px;
 }
-.wheel-host { flex: none; padding-top: 10px; transition: opacity .22s ease; }
+.wheel-host { flex: none; padding-top: 8px; transition: opacity .22s ease; }
 #app.deck-moving .wheel-host { opacity: 0; }
 
-/* entrar l'acord: un fil entre els dos pianos. Arrossega i tu
-   decideixes quan entra cada nota; enrere, surten. Continu i
-   dissimulat: res no crida fins que el fas servir. */
-.arp-host { flex: none; display: flex; justify-content: center; }
-.arp { width: 100%; display: flex; justify-content: center; }
-/* barres com d'ona d'àudio: més barres que notes, alçades a l'atzar
-   (deterministes per acord). Arrossegar-hi el dit les va omplint de
-   beix i l'acord entra nota a nota; enrere, surten. */
-.arp-track {
-  position: relative;
-  width: min(280px, 72%); height: 40px;   /* la zona de toc, generosa */
-  display: flex; align-items: center; gap: 2.5px;
-  cursor: ew-resize;
-  touch-action: none;
-}
-.arp-bar {
-  flex: 1 1 0; min-width: 1.5px; max-width: 5px;
-  background: var(--line);
-  border-radius: 1px;
-  transition: background .14s ease;
-}
-.arp-bar.on { background: var(--beige); }
 .panel-inner > * { position: relative; z-index: 1; }
 
 /* ---------------- capas fijas ---------------- */
@@ -182,8 +160,10 @@ button {
   text-align: center;
 }
 
-/* el salt al joc: el seu lockup, en miniatura (mateixes tres lletres,
-   sempre les de la casa, triï el que triï l'usuari per a l'app) */
+
+
+/* el salt al joc: el seu lockup, en miniatura (sempre les tres
+   lletres de la casa) */
 .quina-btn {
   position: absolute; top: calc(12px + env(safe-area-inset-top)); left: 14px;
   appearance: none; border: 0; background: none; cursor: pointer;
@@ -198,7 +178,7 @@ button {
 .quina-btn .qm i { display: block; font-style: normal; }
 .quina-btn .qm1 {
   text-align: left;
-  font-family: "Instrument Serif", Georgia, serif; font-style: italic;
+  font-family: var(--instr); font-style: italic;
   font-size: 1.08rem; font-weight: 400; letter-spacing: .01em;
   color: var(--text);
 }
@@ -212,7 +192,7 @@ button {
 }
 .quina-btn .qm3 {
   text-align: center;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--fraun);
   font-size: 1.34rem; font-weight: 900; letter-spacing: -.04em;
   color: var(--text);
 }
@@ -222,24 +202,6 @@ button {
   border-radius: 50%; background: var(--beige);
 }
 .quina-btn:active .qm1, .quina-btn:active .qm3 { color: var(--beige); }
-
-/* practica d'oida: un anell amb el punt al mig */
-.train-btn {
-  position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 104px;
-  width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center;
-  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
-}
-.train-btn i {
-  position: relative;
-  width: 17px; height: 17px; border-radius: 50%;
-  border: 2px solid var(--dim);
-}
-.train-btn i::after {
-  content: ""; position: absolute; inset: 4px;
-  border-radius: 50%; background: var(--beige);
-}
-.train-btn:active i { border-color: var(--beige); }
 
 /* ajustos: un mesclador petit, tres linies amb el seu boto */
 .look-btn {
@@ -313,7 +275,8 @@ button {
 .line-ext {
   appearance: none; border: 0; background: none; cursor: pointer;
   padding: 6px 2px; margin: -6px 0;
-  font: inherit; letter-spacing: inherit; text-transform: inherit;
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: 1.15rem; letter-spacing: .01em; text-transform: none;
   color: var(--beige);
   border-bottom: 2px solid transparent;
 }
@@ -545,6 +508,22 @@ button {
 .tools-split .tool-inner[data-tool="metronome"] {
   padding-top: 24px;
 }
+/* les pistes de les eines, en la veu que xiuxiueja */
+.tool-inner[data-tool="tuner"] .tool-hint {
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: 1.1rem; letter-spacing: .01em; text-transform: none;
+  color: var(--muted);
+}
+.mn-line { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+.mn-unit {
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: 1.3rem; color: var(--beige);
+}
+.mn-hint {
+  margin-top: 26px;
+  font-family: var(--instr); font-style: italic; font-weight: 400;
+  font-size: 1rem; color: var(--dim);
+}
 
 .tool-inner {
   position: relative;
@@ -746,8 +725,21 @@ button {
   position: relative;
   flex: none; height: 64px;
   display: flex; align-items: center; justify-content: flex-start;
-  padding-left: 4px;
+  padding: 0 8px 0 4px;
 }
+/* l'ordre visual: fletxa | nom | silenci (el DOM porta el nom primer) */
+.fp-bar .fp-close { order: -1; flex: none; }
+.fp-bar .fp-mute { order: 2; }
+.fp-mute {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  flex: none;
+  padding: 10px 12px;
+  font-size: .66rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--beige);
+  border-bottom: 2px solid var(--beige);
+}
+.fp-mute[hidden] { display: none; }
+.fp-mute:active { color: var(--text); border-bottom-color: var(--text); }
 .fp-close {
   appearance: none; border: 0; background: none; cursor: pointer;
   width: 84px; height: 60px; padding: 0;
@@ -758,7 +750,11 @@ button {
 .fp-close:active { color: var(--beige); }
 /* el nom del que sona, si el pianet el reconeix */
 .fp-name {
-  position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+  /* al mig de la barra i flexible: aixi ni la fletxa ni el silenci
+     no es mouen mai quan l'altre apareix o canvia */
+  flex: 1 1 auto;
+  text-align: center;
+  margin: 0 8px;
   font-family: var(--mono); font-size: .95rem; font-weight: 700;
   color: var(--beige);
 }
@@ -790,6 +786,86 @@ button {
   background: var(--beige); border-radius: 2px;
 }
 
+/* mes posicions: sota el final del diapaso, en flux (mai a sobre
+   de res) i arran del mastil */
+.pos-row {
+  flex: none;
+  width: 100%; max-width: min(440px, 100%);
+  margin: 0 auto;
+  display: flex; justify-content: flex-end;
+}
+.pos-next {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px;
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.pos-next .pos-arrow svg { width: 13px; height: 13px; display: block; }
+.pos-next .pos-arrow { color: var(--beige); }
+.pos-next:active { color: var(--beige); }
+
+/* la inversio del piano, en linia i ARRAN del teclat */
+.inv-host { flex: none; display: flex; justify-content: center; padding-top: 2px; }
+.inv-next {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  margin: 0 auto;
+  display: flex; align-items: baseline; justify-content: center; gap: 10px;
+  padding: 10px 12px;
+}
+.inv-next b {
+  position: relative;
+  font-family: var(--mono); font-size: 1.1rem; font-weight: var(--w-caps);
+  letter-spacing: -.02em; line-height: 1;
+  color: var(--text);
+}
+.inv-next b::after {
+  content: ""; position: absolute;
+  left: -.14em; right: -.02em; bottom: -6px; height: 3px;
+  background: var(--beige);
+}
+.inv-next span {
+  font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted);
+}
+.inv-next .pos-arrow { align-self: center; color: var(--beige); }
+.inv-next .pos-arrow svg { width: 12px; height: 12px; display: block; }
+.inv-next:active b { color: var(--beige); }
+
+/* ---------------- els retols de cami ----------------
+   Dos indicadors com de senyal de fusta, a banda i banda del pla de
+   l'instrument: rectangle acabat en punxa, amb un pal curt que
+   s'esvaeix cap avall. L'unica llicencia d'emoji de la casa. */
+.sign {
+  position: absolute; bottom: 46px; z-index: 3;
+  appearance: none; border: 0; cursor: pointer;
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 14px;
+  background: rgba(244, 241, 235, .08);
+  color: var(--muted);
+  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .14em; text-transform: uppercase;
+}
+:root[data-theme="light"] .sign { background: rgba(20, 18, 16, .07); }
+.sign b { font-weight: var(--w-caps); }
+.sign-ico { font-size: .72rem; letter-spacing: 0; }
+.sign::after {
+  content: ""; position: absolute; top: 100%; left: 50%;
+  width: 2px; height: 13px; margin-left: -1px;
+  background: linear-gradient(var(--line), transparent);
+}
+.sign-l {
+  left: 10px;
+  padding-left: 20px;
+  clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 50%);
+}
+.sign-r {
+  right: 10px;
+  padding-right: 20px;
+  clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 0 100%);
+}
+.sign:active { color: var(--beige); }
+
 /* ---------------- el cercle de quintes ----------------
    Una bruixola, no un poster: el cercle es dibuixa sencer pero
    nomes se'n veu l'arc de dalt, ben gran; la resta llisca fora de
@@ -808,21 +884,39 @@ button {
   flex: none;
   margin-bottom: -12px;   /* la bruixola, ben avall: neix de la vora */
   touch-action: none;
+  /* el quadre creix a la vegada que el viewBox: cap salt */
+  transition: width .46s cubic-bezier(.65, 0, .35, 1), margin .46s cubic-bezier(.65, 0, .35, 1);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
 }
-/* mentre el dit (o l'embranzida) mana, cap transicio: la roda es teva */
-.cf svg[data-grab] .cf-ring,
-.cf svg[data-grab] .cf-cell text { transition: none; }
-/* la roda sencera: la progressio es retira i el cercle es veu tot */
-.cf.full { justify-content: center; }
+/* la roda sencera: la progressio recula al fons i el cercle es veu tot.
+   El dial es queda ancorat a baix (cap reordenacio: cap salt). */
+.cf { position: relative; }
 .cf.full svg {
   width: min(92%, 56vh, 520px);
   margin-bottom: 0;
   -webkit-mask-image: none;
   mask-image: none;
 }
-.cf.full .cf-seq, .cf.full .cf-coach { display: none; }
+.cf-seq, .cf-coach {
+  transition: opacity .38s ease, filter .38s ease,
+    max-height .46s cubic-bezier(.65, 0, .35, 1),
+    min-height .46s cubic-bezier(.65, 0, .35, 1);
+  max-height: 60vh;
+  overflow: hidden;
+}
+.cf-coach { max-height: 40px; }
+/* al fer gran, la progressio i la pista es fonen i cedeixen l'espai:
+   aixi la roda viatja fins al centre sense cap salt */
+.cf.full .cf-seq, .cf.full .cf-coach {
+  opacity: 0;
+  filter: blur(3px);
+  pointer-events: none;
+  max-height: 0; min-height: 0;
+  margin: 0; padding: 0;
+}
+.cf.full { justify-content: center; }
+/* les notes del cercle sencer: la veu que xiuxiueja, i nomes aqui */
 .cf-zoom { cursor: pointer; }
 .cf-zoom-ln[hidden] { display: none; }   /* l'atribut hidden no val per a SVG sense això */
 .cf-zoom-ln {
@@ -830,11 +924,8 @@ button {
   stroke: var(--beige); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 .cf-zoom:active .cf-zoom-ln { stroke: var(--text); }
-/* l'anell gira; les lletres es contragiren i queden sempre dretes */
-.cf-ring {
-  transform-origin: 200px 200px;
-  transition: transform .6s cubic-bezier(.2, .8, .2, 1);
-}
+/* l'anell gira amb atributs SVG i easing per JS (les transicions
+   CSS de transform sobre SVG peten a iOS) */
 .cf-cell { cursor: pointer; }
 .cf-cell path {
   fill: rgba(244, 241, 235, .02);
@@ -844,8 +935,7 @@ button {
 .cf-cell text {
   fill: var(--dim);
   font-family: var(--sans); font-weight: var(--w-caps);
-  transform-box: fill-box; transform-origin: center;
-  transition: fill .2s ease, transform .6s cubic-bezier(.2, .8, .2, 1);
+  transition: fill .2s ease;
   pointer-events: none;
   user-select: none; -webkit-user-select: none;
 }
@@ -857,8 +947,6 @@ button {
   fill: none;
   stroke: transparent; stroke-width: 1.4; stroke-linecap: round;
   pointer-events: none;
-  transform-box: fill-box; transform-origin: center;
-  transition: transform .6s cubic-bezier(.2, .8, .2, 1);
 }
 .cf-cell.fam .cf-deco { stroke: var(--beige); }
 .cf-cell.fam .cf-deco.star { fill: var(--beige); stroke: none; }
@@ -872,10 +960,6 @@ button {
 .cf-cell.ton .cf-name, .cf-cell.ton .cf-num { fill: #060605; }
 .cf-cell.now path { stroke: var(--beige); stroke-width: 1.8; }
 .cf-cell:active path { stroke: var(--text); }
-/* el punt de la sequencia, a cada casella apuntada */
-.cf-seqdot { fill: transparent; transition: fill .2s ease; }
-.cf-cell.seq .cf-seqdot { fill: var(--beige); }
-.cf-cell.ton.seq .cf-seqdot { fill: #060605; }
 .cf-frame {
   fill: none;
   stroke: var(--beige); stroke-width: 1.8; stroke-linejoin: round;
@@ -917,17 +1001,17 @@ button {
   max-width: 100%;
   --chip: 2rem;
 }
-.cf-chips.n1 { --chip: 4rem; }
-.cf-chips.n2 { --chip: 3.4rem; gap: 6px 44px; }
-.cf-chips.n3 { --chip: 2.9rem; gap: 6px 36px; }
+.cf-chips.n1 { --chip: 4.6rem; }
+.cf-chips.n2 { --chip: 3.9rem; gap: 8px 52px; }
+.cf-chips.n3 { --chip: 3.3rem; gap: 8px 42px; }
 .cf-chips.n4 {
-  --chip: 2.9rem;
+  --chip: 3.3rem;
   display: grid; grid-template-columns: repeat(2, auto);
   justify-content: center; justify-items: center;
   gap: 10px 56px;
 }
 .cf-chips.n5, .cf-chips.n6 {
-  --chip: 2.4rem;
+  --chip: 2.7rem;
   display: grid; grid-template-columns: repeat(3, auto);
   justify-content: center; justify-items: center;
   gap: 10px 40px;
@@ -1021,22 +1105,16 @@ button {
 /* com el boto de compartir del joc: un bloc, sol i centrat */
 .cf-round, .cf-done {
   appearance: none; border: 0; cursor: pointer;
-  padding: 10px 16px;
+  padding: 13px 22px;
   background: var(--text); color: var(--bg);
-  font-size: .6rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
+  font-size: .7rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
   border-radius: 3px;
 }
 .cf-done { background: var(--beige); color: #060605; }
 .cf-round.fosc { background: none; color: var(--beige); border: 1px solid var(--line); }
 .cf-round:active, .cf-done:active { background: var(--beige); color: #060605; }
 .cf-round.fosc:active { background: none; color: var(--text); border-color: var(--beige); }
-.cf-clear {
-  position: absolute; right: 2px; top: 2px;
-  appearance: none; border: 0; background: none; cursor: pointer;
-  padding: 10px;
-  color: var(--dim); font-size: 1.05rem; line-height: 1;
-}
-.cf-clear:active { color: var(--beige); }
+
 
 /* a dalt de la roda: COM ES TOCA l'acord viu, no el seu nom.
    El format de l'app en petit, amb el canvi guitarra/piano. */
@@ -1056,16 +1134,16 @@ button {
 }
 .card-x svg { width: 17px; height: 17px; display: block; }
 .card-x:active { color: var(--beige); }
-.sheet.card .cfp-sym { font-size: 2.6rem; }
+.sheet.card .cfp-sym { font-size: 3.2rem; }
 .sheet.card .cfp-kbs { flex-direction: column; gap: 12px; }
 .sheet.card .cfp-kbs .kb { width: 100%; }
-.sheet.card .cfp-gtr { height: min(46vh, 380px); }
+.sheet.card .cfp-gtr { height: min(54vh, 430px); }
 .sheet.card .cfp-gtr .diagram.narrow { max-width: 260px; }
 /* l'extensió, com a peça del nom: fonamental blanca, sufix beix */
 .cfp-ext { font-style: normal; font-size: .55em; color: var(--beige); letter-spacing: -.02em; }
 /* les extensions per personalitzar l'acord de la ronda */
 .card-exts { margin-top: 8px; }
-.sheet.card .opt-grid.tier1 .opt-big { font-size: 1.5rem; }
+.sheet.card .opt-grid.tier1 .opt-big { font-size: 1.7rem; }
 .cfp-head { display: flex; align-items: baseline; gap: 10px; }
 .cfp-sym {
   font-size: 1.7rem; font-weight: var(--w-big); letter-spacing: -.03em;
@@ -1101,7 +1179,6 @@ button {
 :root[data-theme="light"] .cf-cell.ton path { fill: var(--beige); stroke: var(--beige); }
 :root[data-theme="light"] .cf-cell.ton .cf-name,
 :root[data-theme="light"] .cf-cell.ton .cf-num { fill: #F4F1EB; }
-:root[data-theme="light"] .cf-cell.ton.seq .cf-seqdot { fill: #F4F1EB; }
 :root[data-theme="light"] .cf-cell.ton .cf-deco { stroke: #F4F1EB; }
 :root[data-theme="light"] .cf-cell.ton .cf-deco.star { fill: #F4F1EB; stroke: none; }
 
@@ -1132,7 +1209,6 @@ button {
     gap: 10px 16px;
   }
   .panel[data-ins="piano"] .kb-slot { flex: 1 1 42%; min-width: 0; }
-  .panel[data-ins="piano"] .arp-host { order: 3; flex: 1 1 100%; }
   .panel[data-ins="piano"] .kb { min-width: 0; }
 
   .pr-kb { max-width: min(680px, 86vw); }
@@ -1153,6 +1229,7 @@ button {
   .panel[data-ins="cercle"] .panel-inner { padding-top: calc(10px + env(safe-area-inset-top)); }
   .cf { gap: 6px; }
   .cf svg { width: min(100%, calc((100vh - 118px) * 1.32)); }
+  .cf.full svg { width: min(60%, 82vh); }
   .cf-seq { min-height: 34px; flex: none; gap: 2px 16px; }
   .cf-chip b { font-size: 1.2rem; }
   .cf-hint, .cf-round, .cf-done { font-size: .58rem; }
@@ -1188,7 +1265,6 @@ button {
     gap: 14px 30px;
   }
   .panel[data-ins="piano"] .kb-slot { flex: 1 1 42%; min-width: 0; }
-  .panel[data-ins="piano"] .arp-host { order: 3; flex: 1 1 100%; }
   .panel[data-ins="piano"] .kb { min-width: 0; }
 
   .diagram.narrow { max-width: 470px; }

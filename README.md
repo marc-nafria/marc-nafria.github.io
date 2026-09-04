@@ -208,27 +208,11 @@ s'esvaeixen). Sense punts: només orella.
 
 ## L'acord del dia — el joc
 
-Cada dia **sona un acord** de cinc notes (el mateix per a tothom) i l'has de
-trobar al piano, tecla exacta: les encertades **es queden en verd**, les
-errades **en terracota** (ja no recompten, i l'acord es torna a sentir un
-moment, de correctiu). No es perd mai: es compta com al golf, **com menys
-errades millor**. En acabar, **comparteix** ("#N · X errades") o **segueix
-jugant** amb rondes lliures. El puzle és determinista per data local i porta
-la seva **ratxa**; el nucli té els seus tests (`node tests/quinacord.js`).
-
-El joc **viu dins l'app** (botó **?** de dalt a l'esquerra, o `/#quina`):
-és una capa com el pianet, no una pàgina — en PWA, saltar de pàgina treu la
-barra del navegador i trenca la sensació d'app. L'adreça vella `/quinacord/`
-es queda com a redirecció per als enllaços compartits.
-
-## Un sol instrument
-
-La plataforma no duplica res: a la **configuració** (icona dels tres
-filets) es tria **piano o guitarra**, i tot el carrusel, el cercle i les
-fitxes són d'aquell instrument. El carrusel té tres plans: **eines**
-(afinador i tempo, una sola finestra partida per la meitat),
-**l'instrument** i **el cercle de quintes**. El micròfon de l'afinador
-només es demana en prémer el botó d'activar-lo, mai tot sol.
+Cada dia **sona un acord** de cinc notes (el mateix per a tothom) i l'has
+de trobar al piano, tecla exacta: les encertades en verd, les errades en
+terracota (ja no recompten). Es compta com al golf: **com menys errades
+millor**, i mai no es perd. Viu **dins l'app** (el lockup de dalt a
+l'esquerra, o `/#quina`); `/quinacord/` es queda com a redirecció.
 
 ## El cercle de quintes
 
@@ -267,12 +251,10 @@ index.html            l'app (Acords)
 sw.js                 el treballador de servei (offline + versions)
 manifest.webmanifest  icones i instal·lació
 css/practice.css      tot l'estil de l'app
-css/quina.css         l'estil del joc (la capa «L'acord del dia»)
 js/                   els motors: theory, audio, piano, fretboard,
                       shapes, config, tools, practice, cercle (quintes),
                       quina (el joc)
 data/chords.json      LES DADES: acords, formes, digitacions (editable)
-quinacord/            només la redirecció vella cap a /#quina
 tests/                les suites; `node tests/tots.js` les corre totes
 arxiu/curs/           el curs antic (aparcat, fora de producció)
 ```

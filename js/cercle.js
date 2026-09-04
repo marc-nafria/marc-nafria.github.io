@@ -185,8 +185,8 @@
       var r1 = inner ? R1 - 2 : R2;
       var g = el('g', { 'class': 'cf-cell', role: 'button', tabindex: '-1' });
       g.appendChild(el('path', { d: sector(a0, a1, r0, r1) }));
-      var rName = inner ? (R0 + (R1 - R0) * 0.56) : (R1 + (R2 - R1) * 0.56);
-      var rNum = inner ? (R0 + (R1 - R0) * 0.26) : (R1 + (R2 - R1) * 0.24);
+      var rName = inner ? (R0 + (R1 - R0) * 0.62) : (R1 + (R2 - R1) * 0.62);
+      var rNum = inner ? (R0 + (R1 - R0) * 0.2) : (R1 + (R2 - R1) * 0.2);
       var name = labelAt(i * 30, rName, 'cf-name', inner ? 12.5 : 17, inner ? MIN[i] : MAJ[i]);
       var num = labelAt(i * 30, rNum, 'cf-num', 9.5, '');
       var np = xy(i * 30, rNum);
@@ -196,12 +196,12 @@
       g.appendChild(name);
       g.appendChild(num);
       g.appendChild(deco);
-      /* el punt de la seqüència, arran de la vora exterior de cada
-         anell: lluny del numeral, que viu a la vora de dins */
-      var dp = xy(i * 30, inner ? R1 - 9 : R2 - 8);
-      var dot = el('circle', { 'class': 'cf-seqdot', cx: dp[0].toFixed(2), cy: dp[1].toFixed(2), r: 2.6 });
-      g.appendChild(dot);
-      var cell = { g: g, name: name, num: num, deco: deco, nx: np[0], ny: np[1], i: i, ring: ringName };
+      var lp = xy(i * 30, rName);
+      var cell = {
+        g: g, name: name, num: num, deco: deco,
+        lx: lp[0], ly: lp[1], nx: np[0], ny: np[1],
+        i: i, ring: ringName
+      };
       g.addEventListener('click', function () {
         if (justDragged) { return; }   /* venies de girar, no de tocar */
         var info = infoFor(i, ringName, t);
@@ -234,8 +234,48 @@
     svg.appendChild(sym);
     svg.appendChild(zoom);
 
+    /* la finestra s'obre i es tanca lliscant: el viewBox s'interpola
+       (no es pot transicionar amb CSS) i la roda es mou i creix */
+    var viewAnim = null;
+
+    function animateView(target) {
+      viewAnim = null;
+      var cur = (svg.getAttribute('viewBox') || target).split(' ').map(Number);
+      var to = target.split(' ').map(Number);
+      var same = cur.every(function (v, i) { return v === to[i]; });
+      var reduced = false;
+      try {
+        reduced = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch (e) { /* res */ }
+      if (same || reduced || !global.requestAnimationFrame) {
+        svg.setAttribute('viewBox', target);
+        return;
+      }
+      var t0 = perfNow();
+      var DUR = 460;
+      var id = {};
+      viewAnim = id;
+      function step() {
+        if (viewAnim !== id) { return; }
+        var k = Math.min(1, (perfNow() - t0) / DUR);
+        var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   /* easeInOut */
+        var vb = cur.map(function (v, i) { return v + (to[i] - v) * e; });
+        svg.setAttribute('viewBox', vb.join(' '));
+        if (k < 1) { global.requestAnimationFrame(step); }
+        else { viewAnim = null; }
+      }
+      global.requestAnimationFrame(step);
+      /* xarxa de seguretat: passi el que passi, s'acaba al lloc */
+      global.setTimeout(function () {
+        if (viewAnim === id) {
+          viewAnim = null;
+          svg.setAttribute('viewBox', target);
+        }
+      }, DUR + 80);
+    }
+
     function paintView() {
-      svg.setAttribute('viewBox', full ? VIEW_FULL : VIEW_CROP);
+      animateView(full ? VIEW_FULL : VIEW_CROP);
       wrap.setAttribute('class', 'cf' + (full ? ' full' : ''));
       /* al cercle sencer, el centre es al mig de debo */
       sym.setAttribute('y', full ? CY - 16 : CY - 42);
@@ -255,18 +295,72 @@
       paintView();
     });
 
+    /* al cercle sencer, tocar fora de la roda la torna a fer petita */
+    wrap.addEventListener('click', function (ev) {
+      if (!full || justDragged) { return; }
+      /* el boto de fer gran/petita mana ell; i un clic sense
+         coordenades (sintetic) no es cap toc de fora */
+      if (ev.target && ev.target.closest && ev.target.closest('.cf-zoom')) { return; }
+      if (ev.clientX === undefined || (ev.clientX === 0 && ev.clientY === 0)) { return; }
+      if (!svg.getBoundingClientRect) { return; }
+      var r = svg.getBoundingClientRect();
+      if (!r.width) { return; }
+      var sc = r.width / 408;
+      var cx2 = r.left + (CX + 4) * sc;
+      var cy2 = r.top + (CY + 4) * sc;
+      var dx = (ev.clientX || 0) - cx2;
+      var dy = (ev.clientY || 0) - cy2;
+      if (Math.sqrt(dx * dx + dy * dy) > (R2 + 6) * sc) {
+        full = false;
+        paintView();
+      }
+    });
+
     /* ---------------- girar la roda amb el dit ----------------
        La rotació segueix l'angle del punter al voltant del centre
        del dial (que és avall, fora de la finestra: arrossegar en
        horitzontal gira, com una roda de debò). */
+    var glide = null;   /* l'animacio d'encaix, si esta en marxa */
+
     function setRot(deg) {
       rot = deg;
-      ring.style.transform = 'rotate(' + deg + 'deg)';
+      ring.setAttribute('transform', 'rotate(' + deg + ' ' + CX + ' ' + CY + ')');
+      /* les lletres es contragiren al voltant de la SEVA ancora:
+         atribut SVG pur, que els transform de CSS sobre text peten a iOS */
+      var back = -deg;
       cells.forEach(function (c) {
-        c.name.style.transform = 'rotate(' + (-deg) + 'deg)';
-        c.num.style.transform = 'rotate(' + (-deg) + 'deg)';
-        c.deco.style.transform = 'rotate(' + (-deg) + 'deg)';
+        c.name.setAttribute('transform', 'rotate(' + back + ' ' + c.lx + ' ' + c.ly + ')');
+        c.num.setAttribute('transform', 'rotate(' + back + ' ' + c.nx + ' ' + c.ny + ')');
+        c.deco.setAttribute('transform', 'rotate(' + back + ' ' + c.nx + ' ' + c.ny + ')');
       });
+    }
+
+    /* lliscar fins al lloc: l'encaix i la transposicio, amb la
+       corba de la casa pero moguda pel JS */
+    function glideTo(target) {
+      glide = null;
+      if (!global.requestAnimationFrame) { setRot(target); return; }
+      try {
+        if (global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          setRot(target);
+          return;
+        }
+      } catch (e) { /* res */ }
+      var from = rot;
+      if (from === target) { return; }
+      var t0 = perfNow();
+      var DUR = 460;
+      var id = {};
+      glide = id;
+      function step() {
+        if (glide !== id) { return; }
+        var k = Math.min(1, (perfNow() - t0) / DUR);
+        var e = 1 - Math.pow(1 - k, 3);   /* easeOutCubic */
+        setRot(from + (target - from) * e);
+        if (k < 1) { global.requestAnimationFrame(step); }
+        else { glide = null; }
+      }
+      global.requestAnimationFrame(step);
     }
 
     /* l'espurna del V: quatre puntes, dibuixada */
@@ -333,7 +427,8 @@
     }
 
     svg.addEventListener('pointerdown', function (ev) {
-      spin = null;   /* agafar la roda l'atura */
+      spin = null;    /* agafar la roda l'atura */
+      glide = null;   /* i talla l'encaix que estigues en marxa */
       drag = { a0: angleOf(ev), r0: rot, moved: false, v: 0, t: perfNow(), a: 0 };
     });
     svg.addEventListener('pointermove', function (ev) {
@@ -443,8 +538,7 @@
       if (rec) {
         rowCtrl.appendChild(lineBtn('cf-done', 'acceptar', 'Fixar la roda', cb.onDone));
       } else {
-        /* la creueta, absoluta al racó: la ronda queda centrada de debò */
-        line.appendChild(lineBtn('cf-clear', '×', 'Esborrar la roda', cb.onClear));
+        rowCtrl.appendChild(lineBtn('cf-done', 'guarda-la', 'Guardar una postal de la roda', cb.onSave));
         rowCtrl.appendChild(lineBtn('cf-round', 'nova roda', 'Crear una roda nova', cb.onRound));
       }
     }
@@ -465,14 +559,8 @@
            30 graus enrere, no 330 endavant */
         var target = -t * 30;
         var k = Math.round((rot - target) / 360);
-        setRot(target + k * 360);
+        glideTo(target + k * 360);
       }
-
-      /* les marques de la seqüència, per grau: giren amb la tonalitat */
-      var marked = {};
-      seq.forEach(function (item) {
-        marked[(((t + item.d) % 12 + 12) % 12) + ':' + item.ring] = true;
-      });
 
       cells.forEach(function (c) {
         var info = infoFor(c.i, c.ring, t);
@@ -480,7 +568,6 @@
         if (info.deg) { cls += ' fam'; }
         if (info.deg && c.ring === 'out' && info.d === 0) { cls += ' ton'; }
         if (info.pc === o.curPc && info.quality === o.curQuality) { cls += ' now'; }
-        if (marked[c.i + ':' + c.ring]) { cls += ' seq'; }
         c.g.setAttribute('class', cls);
         c.g.setAttribute('aria-label', info.name + (info.deg ? ' · ' + info.deg.num + ' · ' + info.deg.fn : ''));
         c.num.textContent = info.deg ? info.deg.num : '';

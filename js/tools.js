@@ -445,7 +445,7 @@
     }
 
     /* roda a l'escriptori */
-    var coach = null;
+    var coach = null;   /* aparcat: la pista de baix ja es permanent */
     try {
       if (!global.localStorage.getItem('ac.mncoach')) {
         coach = h('div', { class: 'coach', 'aria-hidden': 'true',
@@ -454,7 +454,9 @@
     } catch (e) { /* mode privat */ }
 
     var el = h('div', { class: 'tool-inner', 'data-tool': 'metronome' }, [
-      bpmEl, beatsEl, meterBtn, coach
+      h('div', { class: 'mn-line' }, [bpmEl, h('i', { class: 'mn-unit', text: 'bpm' })]),
+      beatsEl, meterBtn,
+      h('div', { class: 'mn-hint', 'aria-hidden': 'true', text: 'toca la pantalla per marcar un tempo' })
     ]);
     el.addEventListener('wheel', function (ev) {
       if (ev.preventDefault) { ev.preventDefault(); }
@@ -549,12 +551,28 @@
 
   var fpNameEl = null;
 
+  var fpMuteEl = null;
+
   function fpNamePaint() {
     if (!fpNameEl) { return; }
     var latched = Object.keys(fpVoices)
       .filter(function (m) { return fpVoices[m].latched; })
       .map(Number);
     fpNameEl.textContent = nameChord(latched);
+    if (fpMuteEl) { fpMuteEl.hidden = latched.length === 0; }
+  }
+
+  /* deixa anar totes les fixades d'un cop */
+  function fpSilence() {
+    Object.keys(fpVoices).forEach(function (m) {
+      var v = fpVoices[m];
+      if (v && v.latched) {
+        v.voice.release();
+        if (v.refs) { fpKeyPaint(v.refs, 'off'); }
+        delete fpVoices[m];
+      }
+    });
+    fpNamePaint();
   }
 
   function fpStopAll() {
@@ -691,6 +709,11 @@
     var rotor = h('div', { class: 'fp-rotor' }, [
       h('div', { class: 'fp-bar' }, [
         fpNameEl,
+        fpMuteEl = h('button', {
+          class: 'fp-mute', type: 'button', text: 'silenci', hidden: 'hidden',
+          'aria-label': 'Deixar anar totes les notes fixades',
+          onclick: fpSilence
+        }),
         h('button', {
           class: 'fp-close', type: 'button', html: BACK_ARROW, 'aria-label': 'Tornar',
           onclick: closeFreePiano
