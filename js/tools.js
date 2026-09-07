@@ -589,11 +589,13 @@
      amb vora negra, que si no es perden. */
   function fpKeyPaint(refs, state) {
     if (!refs) { return; }
-    /* sonant (polsada o fixada): blanca i enfonsada */
+    /* sonant (polsada o fixada): s'encen i s'enfonsa. En fosc s'encen
+       en blanc; en clar, en or (el blanc sobre paper no es veuria) */
     var on = state !== 'off';
-    refs.rect.setAttribute('fill', on ? '#FFFFFF' : refs.baseFill);
+    var light = document.documentElement.getAttribute('data-theme') === 'light';
+    refs.rect.setAttribute('fill', on ? (light ? '#CFA24A' : '#FFFFFF') : refs.baseFill);
     if (refs.black) {
-      refs.rect.setAttribute('stroke', on ? '#060605' : refs.baseStroke);
+      refs.rect.setAttribute('stroke', on ? (light ? '#141210' : '#060605') : refs.baseStroke);
       refs.rect.setAttribute('stroke-width', on ? 2.4 : refs.baseStrokeW);
     }
     (refs.key || refs.rect).setAttribute('transform', on ? 'translate(0 2)' : '');

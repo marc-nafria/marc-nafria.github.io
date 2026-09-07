@@ -489,8 +489,8 @@ guard('guitarra', () => {
   state.posG = 0;
   repaint();
   const bars = app.querySelectorAll('rect').filter(r =>
-    r.attrs.fill === '#F2EFE9' && parseFloat(r.attrs.width) > parseFloat(r.attrs.height));
-  ok(bars.length >= 1, 'F dibuja la barra de cejilla');
+    r.attrs.fill === '#FFFFFF' && parseFloat(r.attrs.width) > parseFloat(r.attrs.height));
+  ok(bars.length >= 1, 'F dibuja la barra de cejilla (blanca: arranca en claro)');
   const strings = texts(app, 'text').filter(t => t === 'E');
   ok(strings.length >= 2, 'el diagrama rotula las cuerdas');
   const total = Shapes.forChord(5, 'maj').length;
@@ -612,19 +612,19 @@ guard('pianet lliure', () => {
   // polsar: sona i s'il·lumina; deixar anar: calla (delegat a l'svg)
   const refs = svg.keyRefs['48'];
   svg.dispatch('pointerdown', { target: refs.rect, clientX: 100, clientY: 100, pointerId: 1 });
-  ok(refs.rect.attrs.fill === '#FFFFFF', 'la tecla polsada s’encén en blanc');
+  ok(refs.rect.attrs.fill === '#CFA24A', 'la tecla polsada s’encén en or (pell clara)');
   ok(refs.key.attrs.transform === 'translate(0 2)', 'i s’enfonsa un pèl');
   svg.dispatch('pointerup', { pointerId: 1 });
   ok(refs.rect.attrs.fill === refs.baseFill && refs.key.attrs.transform === '',
     'i s’apaga en deixar-la anar');
-  ok(refs.baseFill === '#C7C0B2', 'les blanques del pianet: os càlid, ni ivori ni gris fosc');
+  ok(refs.baseFill === '#F6F2E9', 'les blanques del pianet en clar: os de paper');
 
   // lliscar cap avall fixa la nota sonant
   svg.dispatch('pointerdown', { target: refs.rect, clientX: 100, clientY: 100, pointerId: 2 });
   svg.dispatch('pointermove', { clientX: 100, clientY: 145, pointerId: 2 });
   svg.dispatch('pointerup', { pointerId: 2 });
-  ok(refs.rect.attrs.fill === '#FFFFFF' && refs.key.attrs.transform === 'translate(0 2)',
-    'lliscar cap avall deixa la nota fixada, blanca i enfonsada');
+  ok(refs.rect.attrs.fill === '#CFA24A' && refs.key.attrs.transform === 'translate(0 2)',
+    'lliscar cap avall deixa la nota fixada, encesa i enfonsada');
 
   // i cap amunt la deixa anar
   svg.dispatch('pointerdown', { target: refs.rect, clientX: 100, clientY: 100, pointerId: 3 });
@@ -637,9 +637,9 @@ guard('pianet lliure', () => {
   svg.dispatch('pointerdown', { target: refs49.rect, clientX: 100, clientY: 100, pointerId: 4 });
   svg.dispatch('pointermove', { clientX: 100, clientY: 145, pointerId: 4 });
   svg.dispatch('pointerup', { pointerId: 4 });
-  ok(refs49.rect.attrs.fill === '#FFFFFF' && refs49.rect.attrs.stroke === '#060605'
+  ok(refs49.rect.attrs.fill === '#CFA24A' && refs49.rect.attrs.stroke === '#141210'
     && refs49.rect.attrs['stroke-width'] === '2.4',
-    'la negra fixada va en blanc amb vora negra');
+    'la negra fixada s’encén en or amb vora de tinta');
   svg.dispatch('pointerdown', { target: refs49.rect, clientX: 100, clientY: 100, pointerId: 5 });
   svg.dispatch('pointermove', { clientX: 100, clientY: 55, pointerId: 5 });
   svg.dispatch('pointerup', { pointerId: 5 });

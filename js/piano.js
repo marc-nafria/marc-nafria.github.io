@@ -270,7 +270,7 @@
         group.addEventListener('pointerdown', function (ev) {
           ev.preventDefault();
           Sound.note(midi, { timbre: 'piano' });
-          rect.setAttribute('fill', '#DCC9A6');
+          rect.setAttribute('fill', col('#DCC9A6'));
           setTimeout(function () { rect.setAttribute('fill', baseFill); }, 180);
         });
       }

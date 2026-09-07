@@ -77,7 +77,7 @@
         }).slice(0, 8);
       }
     } catch (e) { /* res */ }
-    state.theme = read('theme', 'dark') === 'light' ? 'light' : 'dark';
+    state.theme = read('theme', 'light') === 'dark' ? 'dark' : 'light';
     applyTheme(state.theme);
     var v = read('voice', 'pad');
     state.voice = VOICES.some(function (x) { return x.id === v; }) ? v : 'pad';
@@ -427,17 +427,18 @@
 
 
   /* ---------------- contenido: guitarra ---------------- */
-  function guitarContent() {
+  /* el dibuix del mastil, sol (la fitxa el vol NET, sense controls) */
+  function guitarDiagram(withControl) {
     var list = shapes();
     if (!list.length) {
-      return [h('div', { class: 'empty' }, [
+      return h('div', { class: 'empty' }, [
         h('b', { text: 'sense posició estàndard' }),
         h('span', {
           text: 'Les notes són ' + chordNotes().map(function (n) {
             return Theory.pcName(n.pc, { flats: useFlats(state.rootPc) });
           }).join(' · ') + '.'
         })
-      ])];
+      ]);
     }
 
     if (state.posG >= list.length) { state.posG = 0; }
@@ -448,14 +449,13 @@
          al carrusel (al mobil, preventDefault el deixava clavat) */
       horizontal: isLandscape()      /* en apaisat, el mastil s'ajeu */
     });
-    var out = [h('div', { class: 'diagram narrow' }, [box])];
+    var kids = [box];
 
-    /* mes posicions: la fletxa al final del diapaso, pero EN FLUX
-       (ocupa el seu lloc sota el mastil: mai no es toca amb els
-       cartells de baix). Les posicions van de mes avall a mes amunt. */
-    if (list.length > 1) {
-      out.push(h('div', { class: 'pos-row' }, [h('button', {
-        class: 'pos-next', type: 'button',
+    /* mes posicions: la fletxa DINS del mastil, a la punta. Les
+       posicions van ordenades de mes avall a mes amunt del diapaso. */
+    if (withControl && list.length > 1) {
+      kids.push(h('button', {
+        class: 'pos-next' + (isLandscape() ? ' jagut' : ''), type: 'button',
         'aria-label': 'Més posicions',
         onclick: function () {
           change(function () {
@@ -468,9 +468,13 @@
           class: 'pos-arrow',
           html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5 Q16.5 12 8 19.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'
         })
-      ])]));
+      ]));
     }
-    return out;
+    return h('div', { class: 'diagram narrow' }, kids);
+  }
+
+  function guitarContent() {
+    return [guitarDiagram(true)];
   }
 
   /* ---------------- capa fija de abajo ---------------- */
@@ -988,6 +992,18 @@
     };
   }
 
+  /* la postal va amb la pell de l'app: un mapa de tinta, com piano.js */
+  var POSTAL_LIGHT = {
+    '#060605': '#F4F1EB', '#F4F1EB': '#141210', '#DCC9A6': '#B08B3C',
+    '#948D83': '#6E675C', '#66605A': '#9A9081',
+    '#C7C0B2': '#E6E0D2', '#161513': '#141210', '#B08B3C': '#CFA24A',
+    '#6A645C': '#A69D8D', '#F2EFE9': '#141210'
+  };
+
+  function pcol(v) {
+    return state.theme === 'light' ? (POSTAL_LIGHT[v] || v) : v;
+  }
+
   function postalKeys(ctx, x, y, w, hh, pc, q) {
     /* un teclat de 10 blanques amb l'acord marcat, des de la blanca
        de sota de la fonamental */
@@ -1009,7 +1025,7 @@
       var kx = x + k * kw;
       var on = pcs.indexOf(((mid % 12) + 12) % 12) !== -1 && !seen[mid % 12];
       if (on) { seen[mid % 12] = true; }
-      ctx.fillStyle = on ? '#DCC9A6' : '#C7C0B2';
+      ctx.fillStyle = pcol(on ? '#DCC9A6' : '#C7C0B2');
       ctx.fillRect(kx + 1, y, kw - 2, hh);
     });
     /* negres per sobre */
@@ -1018,7 +1034,7 @@
       if (WHITE.indexOf(((next % 12) + 12) % 12) === -1) {
         var on = pcs.indexOf(((next % 12) + 12) % 12) !== -1 && !seen[next % 12];
         if (on) { seen[next % 12] = true; }
-        ctx.fillStyle = on ? '#B08B3C' : '#161513';
+        ctx.fillStyle = pcol(on ? '#B08B3C' : '#161513');
         ctx.fillRect(x + (k + 1) * kw - kw * 0.32, y, kw * 0.64, hh * 0.62);
       }
     });
@@ -1031,7 +1047,7 @@
     var L = x + w * 0.12, R = x + w * 0.88;
     var sw = (R - L) / 5;
     var fh = hh / 4.6;
-    ctx.strokeStyle = '#6A645C';
+    ctx.strokeStyle = pcol('#6A645C');
     ctx.lineWidth = 2;
     for (var c = 0; c < 6; c++) {
       ctx.beginPath();
@@ -1041,7 +1057,7 @@
     }
     for (var f = 0; f < 5; f++) {
       ctx.lineWidth = (f === 0 && sh.base === 1) ? 6 : 2;
-      ctx.strokeStyle = (f === 0 && sh.base === 1) ? '#F2EFE9' : '#6A645C';
+      ctx.strokeStyle = pcol((f === 0 && sh.base === 1) ? '#F2EFE9' : '#6A645C');
       ctx.beginPath();
       ctx.moveTo(L, y + fh * (0.5 + f));
       ctx.lineTo(R, y + fh * (0.5 + f));
@@ -1051,12 +1067,12 @@
       var cx2 = L + c * sw;
       if (fr > 0) {
         var rel = fr - (sh.base > 1 ? sh.base - 1 : 0);
-        ctx.fillStyle = '#DCC9A6';
+        ctx.fillStyle = pcol('#DCC9A6');
         ctx.beginPath();
         ctx.arc(cx2, y + fh * (rel), fh * 0.34, 0, 7);
         ctx.fill();
       } else {
-        ctx.strokeStyle = fr === 0 ? '#DCC9A6' : '#6A645C';
+        ctx.strokeStyle = pcol(fr === 0 ? '#DCC9A6' : '#6A645C');
         ctx.lineWidth = 2.4;
         if (fr === 0) {
           ctx.beginPath();
@@ -1084,29 +1100,30 @@
     if (!ctx) { return; }
 
     var paint = function () {
-      /* el fons de la casa: negre calid, llum alta, vinyeta */
-      ctx.fillStyle = '#060605';
+      /* el fons de la casa: paper o negre calid, llum alta, vinyeta */
+      var clar = state.theme === 'light';
+      ctx.fillStyle = pcol('#060605');
       ctx.fillRect(0, 0, W, H);
       var g1 = ctx.createRadialGradient(W / 2, H * 0.3, 80, W / 2, H * 0.3, W * 0.9);
-      g1.addColorStop(0, 'rgba(255,255,255,.07)');
-      g1.addColorStop(1, 'rgba(0,0,0,0)');
+      g1.addColorStop(0, clar ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.07)');
+      g1.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, W, H);
       var g2 = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
-      g2.addColorStop(0, 'rgba(0,0,0,0)');
-      g2.addColorStop(1, 'rgba(0,0,0,.55)');
+      g2.addColorStop(0, clar ? 'rgba(31,27,21,0)' : 'rgba(0,0,0,0)');
+      g2.addColorStop(1, clar ? 'rgba(31,27,21,.12)' : 'rgba(0,0,0,.55)');
       ctx.fillStyle = g2;
       ctx.fillRect(0, 0, W, H);
 
       /* dalt: la tonalitat, en la veu de la musica */
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#948D83';
+      ctx.fillStyle = pcol('#948D83');
       ctx.font = '800 26px Outfit, sans-serif';
       ctx.fillText('L A   R O D A   E N', W / 2, 96);
-      ctx.fillStyle = '#F4F1EB';
+      ctx.fillStyle = pcol('#F4F1EB');
       ctx.font = '900 130px Fraunces, Georgia, serif';
       ctx.fillText(Cercle.KEYS[state.cIdx].maj, W / 2, 220);
-      ctx.fillStyle = '#DCC9A6';
+      ctx.fillStyle = pcol('#DCC9A6');
       ctx.font = 'italic 400 40px "Instrument Serif", Georgia, serif';
       ctx.fillText('major', W / 2, 272);
 
@@ -1121,12 +1138,12 @@
         var col = k % cols, row = Math.floor(k / cols);
         var cx2 = 60 + col * cw + cw / 2;
         var cy2 = top + row * ch;
-        ctx.fillStyle = '#F4F1EB';
+        ctx.fillStyle = pcol('#F4F1EB');
         ctx.font = '900 ' + (n <= 4 ? 64 : 48) + 'px Outfit, sans-serif';
         ctx.fillText(c.name, cx2, cy2 + 56);
         if (c.deg) {
           var minor = /^[a-z]/.test(c.deg.num);
-          ctx.fillStyle = '#DCC9A6';
+          ctx.fillStyle = pcol('#DCC9A6');
           ctx.font = minor
             ? 'italic 400 30px "Instrument Serif", Georgia, serif'
             : '700 28px Fraunces, Georgia, serif';
@@ -1141,7 +1158,7 @@
       });
 
       /* el peu, discret */
-      ctx.fillStyle = '#66605A';
+      ctx.fillStyle = pcol('#66605A');
       ctx.font = '800 22px Outfit, sans-serif';
       ctx.fillText('A C O R D S   ·   E L   C E R C L E   D E   Q U I N T E S', W / 2, H - 56);
 
@@ -1266,7 +1283,7 @@
         var lh = lhVoicing(rh[0]);
         body = h('div', { class: 'cfp-kbs' }, [keyboard(lh, 'L'), keyboard(rh, 'R')]);
       } else {
-        body = h('div', { class: 'cfp-gtr' }, guitarContent());
+        body = h('div', { class: 'cfp-gtr' }, [guitarDiagram(false)]);
       }
 
       /* l'acord en gran, partit com el t\u00edtol: fonamental + extensi\u00f3 */

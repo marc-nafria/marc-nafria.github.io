@@ -7,7 +7,7 @@
    les caus velles. Sense el bump, els visitants es queden amb la
    versió vella per sempre.
    ============================================================ */
-var V = '98';
+var V = '100';
 var CORE = 'acords-v' + V;
 var FONTS = 'acords-fonts';
 

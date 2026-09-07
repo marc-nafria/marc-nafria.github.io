@@ -781,26 +781,28 @@ button {
   opacity: 0; transition: opacity .3s ease;
   pointer-events: none;
 }
+:root[data-theme="light"] .fp-pos { background: rgba(20, 18, 16, .1); }
 .fp-pos i {
   position: absolute; top: 0; height: 100%;
   background: var(--beige); border-radius: 2px;
 }
 
-/* mes posicions: sota el final del diapaso, en flux (mai a sobre
-   de res) i arran del mastil */
-.pos-row {
-  flex: none;
-  width: 100%; max-width: min(440px, 100%);
-  margin: 0 auto;
-  display: flex; justify-content: flex-end;
-}
+/* mes posicions: la fletxa DINS del mastil, a la punta de baix */
+.diagram.narrow { position: relative; }
 .pos-next {
+  position: absolute; right: 6%; bottom: 17%;
   appearance: none; border: 0; background: none; cursor: pointer;
   display: flex; align-items: center; gap: 7px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   font-size: .58rem; font-weight: var(--w-caps); letter-spacing: .16em; text-transform: uppercase;
-  color: var(--dim);
+  color: var(--muted);
   white-space: nowrap;
+  text-shadow: 0 0 6px var(--bg);
+}
+/* en apaisat el mastil s'ajeu: la punta es a la dreta */
+.pos-next.jagut {
+  right: 2%; bottom: auto; top: 50%;
+  transform: translateY(-50%);
 }
 .pos-next .pos-arrow svg { width: 13px; height: 13px; display: block; }
 .pos-next .pos-arrow { color: var(--beige); }
@@ -1010,14 +1012,16 @@ button {
   justify-content: center; justify-items: center;
   gap: 10px 56px;
 }
+/* a les graelles, el cos es doblega als mobils estrets: tres o quatre
+   columnes de noms llargs (Cmaj7) no hi cabrien */
 .cf-chips.n5, .cf-chips.n6 {
-  --chip: 2.7rem;
+  --chip: min(2.7rem, 9vw);
   display: grid; grid-template-columns: repeat(3, auto);
   justify-content: center; justify-items: center;
   gap: 10px 40px;
 }
 .cf-chips.n7, .cf-chips.n8 {
-  --chip: 2.1rem;
+  --chip: min(2.1rem, 6.5vw);
   display: grid; grid-template-columns: repeat(4, auto);
   justify-content: center; justify-items: center;
   gap: 10px 30px;

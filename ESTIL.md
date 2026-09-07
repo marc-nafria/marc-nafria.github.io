@@ -25,8 +25,9 @@ triat a configuració, res duplicat).
 
 ## Els fonaments
 
-- Negre càlid `#060605`, blanc càlid `#F4F1EB`, beix `#DCC9A6`.
-  En mode clar: paper `#F4F1EB`, tinta `#141210`, ocre `#B08B3C`.
+- **El clar és la pell per defecte**: paper `#F4F1EB`, tinta `#141210`,
+  ocre `#B08B3C`. El fosc es tria: negre càlid `#060605`, blanc càlid
+  `#F4F1EB`, beix `#DCC9A6`.
 - La profunditat la fa la **llum**, no el color: llum principal alta,
   contrallum tènue, vinyeta a les vores i **gra** per sobre. Tot mate.
 - **Cap caixa.** Tipografia sobre vidre. Les vores es fonen

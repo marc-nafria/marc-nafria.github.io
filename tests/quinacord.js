@@ -29,7 +29,7 @@ const d7 = new Date(+launch[0], +launch[1] - 1, +launch[2] + 7);
 ok(Q.dayIndex(d7) === 8, 'set dies després toca el número 8');
 
 /* determinista: el mateix dia, el mateix puzle per a tothom */
-['3', '5', '7'].forEach((m) => {
+['3', '4', '5', '7'].forEach((m) => {
   const a = Q.puzzleFor(40, m);
   const b = Q.puzzleFor(40, m);
   ok(JSON.stringify(a.pcs) === JSON.stringify(b.pcs) && a.name === b.name,
@@ -43,13 +43,23 @@ ok(Q.dayIndex(d7) === 8, 'set dies després toca el número 8');
 
 /* els tres modes no comparteixen puzle el mateix dia */
 const p3 = Q.puzzleFor(9, '3');
+// el mode del dia: determinista i variat
+{
+  const m1 = Q.dailyMode(3), m2 = Q.dailyMode(3);
+  ok(m1 === m2, 'el mode del dia és determinista: ' + m1);
+  const seen = new Set();
+  for (let d = 1; d <= 30; d++) { seen.add(Q.dailyMode(d)); }
+  ok(seen.size === 3, 'en un mes hi surten els tres modes: ' + [...seen].join(','));
+  ok([...seen].every(m => Q.MODES[m]), 'i tots són modes de debò');
+}
+
 const p5 = Q.puzzleFor(9, '5');
 ok(p3.name !== p5.name, 'cada mode té el seu acord del dia');
 
 /* una temporada sencera, sana: mai una nota repetida, sempre amb nom */
 let clean = true;
 for (let day = 1; day <= 120; day++) {
-  ['3', '5', '7'].forEach((m) => {
+  ['3', '4', '5', '7'].forEach((m) => {
     const p = Q.puzzleFor(day, m);
     if (p.pcs.length !== Number(m) || !p.name || p.midis.length !== p.type.steps.length) {
       clean = false;
@@ -70,7 +80,7 @@ ok(!ebFound || ebFound.indexOf('Eb') === 0,
 /* el tauler de 15 blanques sempre engoleix el voicing sencer */
 let fits = true;
 for (let day = 1; day <= 400; day++) {
-  ['3', '5', '7'].forEach((m) => {
+  ['3', '4', '5', '7'].forEach((m) => {
     const p = Q.puzzleFor(day, m);
     const span = Math.max(...p.midis) - Math.min(...p.midis);
     if (span > 23) { fits = false; }

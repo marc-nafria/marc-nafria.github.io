@@ -29,6 +29,17 @@
         { id: 'sus4', suffix: 'sus4', name: 'suspès 4', steps: [0, 5, 7] }
       ]
     },
+    '4': {
+      label: '4 notes',
+      pool: [
+        { id: 'maj7', suffix: 'maj7', name: 'major setena', steps: [0, 4, 7, 11] },
+        { id: 'dom7', suffix: '7', name: 'setena de dominant', steps: [0, 4, 7, 10] },
+        { id: 'min7', suffix: 'm7', name: 'menor setena', steps: [0, 3, 7, 10] },
+        { id: 'six', suffix: '6', name: 'sisena', steps: [0, 4, 7, 9] },
+        { id: 'm7b5', suffix: 'm7b5', name: 'semidisminuït', steps: [0, 3, 6, 10] },
+        { id: 'mmaj7', suffix: 'mMaj7', name: 'menor amb setena major', steps: [0, 3, 7, 11] }
+      ]
+    },
     '5': {
       label: '5 notes',
       pool: [
@@ -99,7 +110,19 @@
     };
   }
 
-  global.Quina = { LAUNCH: LAUNCH, MODES: MODES, dayIndex: dayIndex, puzzleFor: puzzleFor, rng: rng };
+  /* el mode del dia: varia entre 3, 4 i 5 notes (determinista: el
+     mateix per a tothom) perque no surtin sempre els mateixos acords */
+  var DAY_MODES = ['3', '4', '5'];
+
+  function dailyMode(day) {
+    var r = rng(day * 613 + 29);
+    return DAY_MODES[Math.floor(r() * DAY_MODES.length)];
+  }
+
+  global.Quina = {
+    LAUNCH: LAUNCH, MODES: MODES, dayIndex: dayIndex,
+    puzzleFor: puzzleFor, dailyMode: dailyMode, rng: rng
+  };
 
   /* ================================================================
      D'aqui en avall, nomes el navegador: la capa, el so i el dia.
@@ -110,7 +133,7 @@
   var wrap = null;      /* la capa sencera; null = tancat */
   var els = null;
   var day = 0;
-  var modeId = '5';     /* un sol mode: cinc notes */
+  var modeId = '5';     /* el del dia es tria a setDaily */
   var puzzle = null;
   var state = null;     /* { found: [midi], misses, wrong: [midi], done } */
   var kbMaps = [];      /* un mapa de tecles per cada fila del teclat */
@@ -250,8 +273,8 @@
     if (isDaily) { store('estat3.' + keyOf(), JSON.stringify(state)); }
   }
 
-  function streakFor(m) {
-    var raw = store('ratxa.' + m);
+  function streakFor() {
+    var raw = store('ratxa.dia') || store('ratxa.5');   /* migra la vella */
     if (raw) {
       try { return JSON.parse(raw); } catch (e) { /* res */ }
     }
@@ -259,12 +282,12 @@
   }
 
   function noteStreak(win) {
-    var s = streakFor(modeId);
+    var s = streakFor();
     if (s.last === day) { return s; }
     s.count = win ? (s.last === day - 1 ? s.count + 1 : 1) : 0;
     s.best = Math.max(s.best, s.count);
     s.last = day;
-    store('ratxa.' + modeId, JSON.stringify(s));
+    store('ratxa.dia', JSON.stringify(s));
     return s;
   }
 
@@ -388,6 +411,7 @@
   function freeRound() {
     isDaily = false;
     stopChord();
+    modeId = DAY_MODES[Math.floor(Math.random() * DAY_MODES.length)];
     var pool = MODES[modeId].pool;
     var rootPc = Math.floor(Math.random() * 12);
     var type = pool[Math.floor(Math.random() * pool.length)];
@@ -416,6 +440,7 @@
     isDaily = true;
     stopChord();
     day = dayIndex(new Date());
+    modeId = dailyMode(day);
     puzzle = puzzleFor(day, modeId);
     state = loadState();
     buildKb();
@@ -430,7 +455,7 @@
       'L’acord del dia #' + puzzle.number,
       state.misses === 0 ? 'sense cap errada' : state.misses + ' errades',
     ];
-    var s = streakFor(modeId);
+    var s = streakFor();
     if (s.count > 1) { lines.push('ratxa ' + s.count); }
     if (base) { lines.push(base + '#quina'); }
     return lines.join('\n');
